@@ -1,0 +1,14 @@
+[Unit]
+Description=Yadreno VPN Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/vpn-panel-01
+ExecStart=/root/vpn-panel-01/venv/bin/python main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
