@@ -7,6 +7,7 @@ import subprocess
 import logging
 import sys
 import os
+import shutil
 from typing import Tuple, Optional, List, Dict
 
 logger = logging.getLogger(__name__)
@@ -378,6 +379,49 @@ def install_requirements() -> Tuple[bool, str]:
     except Exception as e:
         logger.error(f"Исключение при установке зависимостей: {e}")
         return False, f"❌ Ошибка: {e}"
+
+
+def refresh_systemd_service() -> Tuple[bool, str]:
+    """
+    Применяет актуальный yadreno-vpn.service после обновления кода.
+
+    Если systemd недоступен (например, локальный запуск без сервиса), считаем это
+    нефатальным: обновление кода и зависимостей всё равно может быть корректным.
+    """
+    project_root = get_project_root()
+    source_unit = os.path.join(project_root, 'yadreno-vpn.service')
+    target_unit = '/etc/systemd/system/yadreno-vpn.service'
+
+    if os.name == 'nt':
+        return True, "systemd недоступен на Windows, пропущено"
+
+    if not os.path.exists(source_unit):
+        return True, "yadreno-vpn.service не найден, пропущено"
+
+    systemctl = shutil.which('systemctl')
+    if not systemctl or not os.path.isdir('/run/systemd/system'):
+        return True, "systemd недоступен, пропущено"
+
+    try:
+        shutil.copy2(source_unit, target_unit)
+        result = subprocess.run(
+            [systemctl, 'daemon-reload'],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            timeout=30
+        )
+        if result.returncode != 0:
+            output = (result.stderr or result.stdout or '').strip()
+            return False, f"❌ Не удалось применить systemd unit:\n{output}"
+        return True, "✅ systemd unit обновлён"
+    except PermissionError:
+        return False, "❌ Недостаточно прав для обновления /etc/systemd/system/yadreno-vpn.service"
+    except subprocess.TimeoutExpired:
+        return False, "❌ Превышено время ожидания systemctl daemon-reload"
+    except Exception as e:
+        logger.error(f"Ошибка обновления systemd unit: {e}")
+        return False, f"❌ Ошибка обновления systemd unit: {e}"
 
 
 def restart_bot() -> None:

@@ -27,6 +27,7 @@ from bot.utils.git_utils import (
     get_last_commit_info,
     get_previous_commits_info,
     install_requirements,
+    refresh_systemd_service,
     restart_bot,
 )
 from bot.keyboards.admin import (
@@ -191,6 +192,16 @@ async def admin_update_cmd(message: Message, state: FSMContext):
     await state.clear()
     await asyncio.sleep(2)
     
+    success, service_message = refresh_systemd_service()
+    if not success:
+        logger.error(f"Ошибка обновления systemd unit: {service_message}")
+        await safe_edit_or_send(message,
+            f"⚠️ <b>Ошибка обновления systemd unit</b>\n\n{service_message}\n\n"
+            "Бот не будет перезапущен. Проверьте права и попробуйте снова.",
+            force_new=True
+        )
+        return
+
     # Устанавливаем/обновляем зависимости
     success, req_message = install_requirements()
     if not success:
@@ -398,6 +409,15 @@ async def update_bot_confirmed(callback: CallbackQuery, state: FSMContext):
     # Даём время на отправку сообщения
     await asyncio.sleep(2)
     
+    success, service_message = refresh_systemd_service()
+    if not success:
+        logger.error(f"Ошибка обновления systemd unit: {service_message}")
+        await safe_edit_or_send(callback.message,
+            f"⚠️ <b>Ошибка обновления systemd unit</b>\n\n{service_message}\n\n"
+            "Бот не будет перезапущен. Проверьте права и попробуйте снова."
+        )
+        return
+
     # Устанавливаем/обновляем зависимости
     success, req_message = install_requirements()
     if not success:
@@ -518,6 +538,15 @@ async def force_overwrite_confirmed(callback: CallbackQuery, state: FSMContext):
     # Даём время на отправку сообщения
     await asyncio.sleep(2)
     
+    success, service_message = refresh_systemd_service()
+    if not success:
+        logger.error(f"Ошибка обновления systemd unit: {service_message}")
+        await safe_edit_or_send(callback.message,
+            f"⚠️ <b>Ошибка обновления systemd unit</b>\n\n{service_message}\n\n"
+            "Бот не будет перезапущен. Проверьте права и попробуйте снова."
+        )
+        return
+
     # Устанавливаем/обновляем зависимости
     success, req_message = install_requirements()
     if not success:
