@@ -94,6 +94,45 @@ deactivate
 systemctl restart yadreno-vpn
 ```
 
+### Через install.sh
+Скрипт установки поддерживает безопасное обновление и жёсткую перезапись:
+```bash
+cd /root/vpn-panel-01
+bash install.sh update
+bash install.sh reset
+```
+
+`update` делает `git pull`, обновляет зависимости, применяет актуальный `yadreno-vpn.service` и перезапускает бота. `reset` делает `git fetch` + `git reset --hard origin/main`; `config.py` и `database/vpn_bot.db` при этом не удаляются, потому что они игнорируются Git.
+
+---
+
+## Установка в Proxmox LXC Ubuntu 24.04
+
+Бот можно запускать в LXC-контейнере Proxmox на Ubuntu 24.04, если контейнер работает с systemd. Отдельные kernel/VPN-модули внутри контейнера боту не нужны: он управляет внешней 3x-ui-панелью по HTTP API и хранит данные в SQLite.
+
+Рекомендуемые параметры контейнера:
+```bash
+pct set <CTID> -features nesting=1,keyctl=1
+pct set <CTID> -onboot 1
+pct reboot <CTID>
+```
+
+Минимальные ресурсы для старта: 1 vCPU, 1 GB RAM, 8-10 GB disk. Для продакшена лучше 2 GB RAM и отдельный регулярный backup контейнера.
+
+Перед установкой внутри контейнера проверьте:
+```bash
+systemctl is-system-running
+apt update
+apt install -y ca-certificates curl git python3-venv python3-pip
+```
+
+Допустимые состояния `systemctl is-system-running`: `running`, `degraded`, `starting`, `initializing`. Если команда пишет `offline` или `systemd не запущен`, контейнер создан/запущен не как полноценный Ubuntu systemd container. В этом случае используйте официальный Ubuntu 24.04 template Proxmox, включите `nesting=1,keyctl=1` и перезапустите контейнер. Если Proxmox всё равно блокирует systemd-сервисы, надёжнее развернуть бота в небольшой VM.
+
+Ограничения LXC:
+- не запускайте 3x-ui/Xray внутри того же unprivileged LXC без отдельной проверки сетевых прав и firewall;
+- не отключайте AppArmor/не делайте privileged container без необходимости;
+- следите за временем на хосте Proxmox, потому что контейнер обычно наследует время от хоста, а платежи и сроки подписок чувствительны к часам.
+
 ---
 
 ## Команды бота

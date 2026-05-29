@@ -20,6 +20,7 @@ INSTALL_DIR="/root/vpn-panel-01"
 REPO_URL="https://github.com/zirocool93/vpn-panel-01.git"
 VENV_DIR="$INSTALL_DIR/venv"
 SERVICE_FILE="yadreno-vpn.service"
+BOT_DB_RELATIVE_PATH="database/vpn_bot.db"
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -131,12 +132,24 @@ setup_venv() {
     python3 -m venv "$VENV_DIR"
     print_ok "Виртуальное окружение создано: $VENV_DIR"
 
-    source "$VENV_DIR/bin/activate"
-    pip install --upgrade pip -q
-    pip install --upgrade -r "$INSTALL_DIR/requirements.txt" -q
-    deactivate
+    "$VENV_DIR/bin/python" -m pip install --upgrade pip -q
+    "$VENV_DIR/bin/python" -m pip install --upgrade -r "$INSTALL_DIR/requirements.txt" -q
 
     print_ok "Зависимости Python установлены в venv"
+}
+
+update_python_deps() {
+    print_header "Обновление Python-зависимостей"
+
+    if [ ! -x "$VENV_DIR/bin/python" ]; then
+        print_warn "Виртуальное окружение не найдено — создаём заново"
+        python3 -m venv "$VENV_DIR"
+    fi
+
+    "$VENV_DIR/bin/python" -m pip install --upgrade pip -q
+    "$VENV_DIR/bin/python" -m pip install --upgrade -r "$INSTALL_DIR/requirements.txt" -q
+
+    print_ok "Зависимости Python обновлены"
 }
 
 # Настройка systemd сервиса
@@ -167,6 +180,36 @@ EOF
     print_ok "systemd сервис установлен и включён в автозапуск"
 }
 
+check_runtime_environment() {
+    print_header "Проверка окружения"
+
+    if ! command -v systemctl >/dev/null 2>&1; then
+        print_err "systemctl не найден. Для автозапуска нужен контейнер/сервер с systemd."
+        exit 1
+    fi
+
+    if [ ! -d /run/systemd/system ]; then
+        print_err "systemd не запущен как init-система."
+        echo "Для LXC Proxmox используйте Ubuntu 24.04 container template с systemd и запускайте скрипт внутри запущенного контейнера."
+        exit 1
+    fi
+
+    if ! systemctl is-system-running --quiet 2>/dev/null; then
+        system_state="$(systemctl is-system-running 2>/dev/null || true)"
+        case "$system_state" in
+            running|degraded|starting|initializing)
+                print_warn "systemd состояние: $system_state. Продолжаем."
+                ;;
+            *)
+                print_err "systemd состояние: ${system_state:-unknown}. systemctl может не работать в этом окружении."
+                exit 1
+                ;;
+        esac
+    fi
+
+    print_ok "systemd доступен"
+}
+
 # Запуск сервиса
 start_service() {
     systemctl start yadreno-vpn
@@ -186,6 +229,7 @@ start_service() {
 # ============================================================
 do_install() {
     print_header "🚀 Установка Yadreno VPN"
+    check_runtime_environment
 
     # Проверяем, не установлен ли уже
     if [ -d "$INSTALL_DIR" ] && [ -d "$INSTALL_DIR/.git" ]; then
@@ -209,8 +253,8 @@ do_install() {
             cp "$INSTALL_DIR/config.py" /tmp/yadreno_config_backup.py
             BACKUP_CONFIG=1
         fi
-        if [ -f "$INSTALL_DIR/vpn_bot.db" ]; then
-            cp "$INSTALL_DIR/vpn_bot.db" /tmp/yadreno_db_backup.db
+        if [ -f "$INSTALL_DIR/$BOT_DB_RELATIVE_PATH" ]; then
+            cp "$INSTALL_DIR/$BOT_DB_RELATIVE_PATH" /tmp/yadreno_db_backup.db
             BACKUP_DB=1
         fi
         rm -rf "$INSTALL_DIR"
@@ -236,7 +280,8 @@ do_install() {
         NEED_WRITE_CONFIG=0
     fi
     if [ "$BACKUP_DB" = "1" ] && [ -f "/tmp/yadreno_db_backup.db" ]; then
-        cp /tmp/yadreno_db_backup.db "$INSTALL_DIR/vpn_bot.db"
+        mkdir -p "$INSTALL_DIR/$(dirname "$BOT_DB_RELATIVE_PATH")"
+        cp /tmp/yadreno_db_backup.db "$INSTALL_DIR/$BOT_DB_RELATIVE_PATH"
         rm /tmp/yadreno_db_backup.db
         print_ok "База данных восстановлена из резервной копии"
     fi
@@ -269,6 +314,7 @@ do_install() {
 # ============================================================
 do_soft_update() {
     print_header "🔄 Мягкое обновление"
+    check_runtime_environment
 
     if [ ! -d "$INSTALL_DIR/.git" ]; then
         print_err "Yadreno VPN не установлен в $INSTALL_DIR"
@@ -298,11 +344,9 @@ do_soft_update() {
 
     print_ok "Код обновлён"
 
-    # Обновляем зависимости
-    source "$VENV_DIR/bin/activate"
-    pip install --upgrade -r requirements.txt -q
-    deactivate
-    print_ok "Зависимости обновлены"
+    # Применяем возможные изменения systemd unit и обновляем зависимости
+    setup_systemd
+    update_python_deps
 
     # Перезапуск
     systemctl restart yadreno-vpn
@@ -321,6 +365,7 @@ do_soft_update() {
 # ============================================================
 do_hard_reset() {
     print_header "⚠️  Жёсткая перезапись"
+    check_runtime_environment
 
     if [ ! -d "$INSTALL_DIR/.git" ]; then
         print_err "Yadreno VPN не установлен в $INSTALL_DIR"
@@ -328,7 +373,7 @@ do_hard_reset() {
     fi
 
     echo -e "${RED}Внимание! Все локальные изменения в коде будут перезаписаны.${NC}"
-    echo -e "${YELLOW}config.py и vpn_bot.db затронуты НЕ будут.${NC}"
+    echo -e "${YELLOW}config.py и database/vpn_bot.db затронуты НЕ будут.${NC}"
     if [ "$AUTO_MODE" = "1" ]; then
         confirm="y"
     else
@@ -341,7 +386,7 @@ do_hard_reset() {
 
     cd "$INSTALL_DIR"
 
-    # Жёсткая перезапись: config.py и vpn_bot.db в .gitignore — не затрагиваются
+    # Жёсткая перезапись: config.py и database/vpn_bot.db в .gitignore — не затрагиваются
     git fetch origin -q
     local target="origin/main"
     if [ -n "$TARGET_COMMIT" ]; then
@@ -351,11 +396,9 @@ do_hard_reset() {
     git clean -fd -q
     print_ok "Код перезаписан ($target)"
 
-    # Обновляем зависимости
-    source "$VENV_DIR/bin/activate"
-    pip install --upgrade -r requirements.txt -q
-    deactivate
-    print_ok "Зависимости обновлены"
+    # Применяем возможные изменения systemd unit и обновляем зависимости
+    setup_systemd
+    update_python_deps
 
     # Перезапуск
     systemctl restart yadreno-vpn
