@@ -18,8 +18,10 @@ def get_connection() -> sqlite3.Connection:
     Returns:
         sqlite3.Connection: Соединение с БД
     """
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=5.0)
     conn.row_factory = sqlite3.Row  # Доступ к полям по имени
+    conn.execute("PRAGMA journal_mode = WAL")  # Более безопасная параллельная работа бота и web
+    conn.execute("PRAGMA busy_timeout = 5000")  # Ждём освобождения lock до 5 секунд
     conn.execute("PRAGMA foreign_keys = ON")  # Включаем FK
     return conn
 

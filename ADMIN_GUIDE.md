@@ -135,6 +135,26 @@ apt install -y ca-certificates curl git python3-venv python3-pip
 
 ---
 
+## Подготовка Web-админки
+
+Базовые таблицы Web-админки создаются обычной системой миграций при запуске бота или вручную:
+```bash
+cd /root/vpn-panel-01
+source venv/bin/activate
+python -c "from database.migrations import run_migrations; run_migrations(); print('ok')"
+```
+
+Первого Web-администратора создайте отдельной CLI-командой:
+```bash
+cd /root/vpn-panel-01
+source venv/bin/activate
+python tools/create_web_admin.py
+```
+
+Пароль вводится через `getpass` и не печатается в консоль. Сама Web-админка будет добавлена следующим этапом поверх подготовленных миграций и сервисного слоя.
+
+---
+
 ## Команды бота
 
 Бот поддерживает следующие команды, вы можете их добавить в @BotFather:

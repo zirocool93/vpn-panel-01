@@ -34,7 +34,7 @@ def _add_column(conn: sqlite3.Connection, table: str, column_def: str) -> None:
 INITIAL_VERSION = 21
 
 # Текущая версия схемы БД (инкрементируется при добавлении новых миграций)
-LATEST_VERSION = 34
+LATEST_VERSION = 35
 
 
 def _my_keys_item_template() -> str:
@@ -1200,6 +1200,72 @@ def migration_34(conn):
     logger.info("Миграция v34 применена: добавлены пользовательские страницы ключей")
 
 
+def migration_35(conn):
+    """
+    Миграция v35: базовые таблицы Web-админки.
+
+    Создаёт пользователей Web-админки, сессии, audit log и дефолтные настройки
+    запуска Web UI. Миграция полностью идемпотентна.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'owner',
+            is_active INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_login_at DATETIME
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_user_id INTEGER NOT NULL,
+            session_token TEXT NOT NULL UNIQUE,
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME,
+            revoked_at DATETIME,
+            FOREIGN KEY(admin_user_id) REFERENCES admin_users(id)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS admin_audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_user_id INTEGER,
+            action TEXT NOT NULL,
+            entity_type TEXT,
+            entity_id TEXT,
+            details TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(admin_user_id) REFERENCES admin_users(id)
+        )
+    """)
+
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_sessions_admin_user_id ON admin_sessions(admin_user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_audit_log_admin_user_id ON admin_audit_log(admin_user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created_at ON admin_audit_log(created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_audit_log_action ON admin_audit_log(action)")
+
+    default_settings = [
+        ('web_admin_enabled', '1'),
+        ('web_admin_host', '127.0.0.1'),
+        ('web_admin_port', '8080'),
+        ('web_session_lifetime_hours', '12'),
+    ]
+    for key, value in default_settings:
+        conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))
+
+    logger.info("Миграция v35 применена: добавлены таблицы и настройки Web-админки")
+
+
 MIGRATIONS = {
     22: migration_22,
     23: migration_23,
@@ -1214,6 +1280,7 @@ MIGRATIONS = {
     32: migration_32,
     33: migration_33,
     34: migration_34,
+    35: migration_35,
 }
 
 

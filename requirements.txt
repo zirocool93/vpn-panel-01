@@ -2,3 +2,9 @@ aiogram>=3.3.0
 aiohttp
 qrcode
 pillow
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+passlib[bcrypt]
+itsdangerous
