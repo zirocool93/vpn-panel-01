@@ -4,31 +4,67 @@
   <h1 class="h3 mb-0">Страницы бота</h1>
 </div>
 
+<form method="get" action="/admin/pages" class="row g-2 align-items-end mb-3">
+  <div class="col-lg-5">
+    <label class="form-label">Поиск</label>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="page_key, название или текст">
+  </div>
+  <div class="col-lg-3">
+    <label class="form-label">Группа</label>
+    <select class="form-select" name="group">
+      <option value="">Все группы</option>
+      {% for item in groups %}
+      <option value="{{ item.key }}" {% if selected_group == item.key %}selected{% endif %}>{{ item.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-lg-4">
+    <button class="btn btn-primary">Найти</button>
+    <a class="btn btn-outline-secondary" href="/admin/pages">Сбросить</a>
+  </div>
+</form>
+
+{% set current_group = namespace(value="") %}
 <div class="table-responsive">
   <table class="table table-sm align-middle">
     <thead>
       <tr>
-        <th>Ключ</th>
-        <th>Текст</th>
-        <th>Изображение</th>
-        <th>Кнопки</th>
+        <th>Страница</th>
+        <th>Группа</th>
+        <th>Custom</th>
+        <th>Preview текста</th>
         <th>Обновлено</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
     {% for page in pages %}
+      {% if current_group.value != page.group_label %}
+      {% set current_group.value = page.group_label %}
+      <tr class="table-light"><th colspan="6">{{ page.group_label }}</th></tr>
+      {% endif %}
       <tr>
-        <td><code>{{ page.page_key }}</code></td>
-        <td>{% if page.has_text_custom %}<span class="badge text-bg-primary">custom</span>{% else %}<span class="text-muted">default</span>{% endif %}</td>
-        <td>{% if page.has_image_custom %}<span class="badge text-bg-primary">custom</span>{% elif page.image_default %}<span class="text-muted">default</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
-        <td>{% if page.has_buttons_custom %}<span class="badge text-bg-primary">custom</span>{% else %}<span class="text-muted">default</span>{% endif %}</td>
+        <td>
+          <div class="fw-semibold">{{ page.label }}</div>
+          <code>{{ page.page_key }}</code>
+        </td>
+        <td>{{ page.group_label }}</td>
+        <td>
+          {% if page.has_text_custom %}<span class="badge text-bg-primary">text</span>{% endif %}
+          {% if page.has_image_custom %}<span class="badge text-bg-primary">image</span>{% endif %}
+          {% if page.has_buttons_custom %}<span class="badge text-bg-primary">buttons</span>{% endif %}
+          {% if not page.has_text_custom and not page.has_image_custom and not page.has_buttons_custom %}<span class="text-muted">default</span>{% endif %}
+        </td>
+        <td class="text-muted">{{ page.text_preview }}</td>
         <td>{{ page.updated_at or "-" }}</td>
         <td class="text-end">
           <a class="btn btn-sm btn-outline-secondary" href="/admin/pages/{{ page.page_key }}">Открыть</a>
           <a class="btn btn-sm btn-outline-primary" href="/admin/pages/{{ page.page_key }}/edit">Редактировать</a>
+          <a class="btn btn-sm btn-outline-info" href="/admin/pages/{{ page.page_key }}/preview">Preview</a>
         </td>
       </tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted">Страницы не найдены</td></tr>
     {% endfor %}
     </tbody>
   </table>

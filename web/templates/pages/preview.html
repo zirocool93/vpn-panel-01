@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not page %}
+<div class="alert alert-warning">Страница не найдена</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h3 mb-0">Preview: {{ page.label }}</h1>
+    <div class="text-muted"><code>{{ page.page_key }}</code> · {{ page.group_label }}</div>
+  </div>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="/admin/pages/{{ page.page_key }}">Назад к странице</a>
+    <a class="btn btn-primary" href="/admin/pages/{{ page.page_key }}/edit">Редактировать</a>
+  </div>
+</div>
+
+<div class="alert alert-info">Это браузерный предпросмотр. Telegram может отобразить сообщение немного иначе.</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="telegram-preview">
+      {% if page.effective_image %}
+        {% if page.effective_image_is_url %}
+        <img class="page-preview-image mb-3" src="{{ page.effective_image }}" alt="">
+        {% else %}
+        <div class="preview-image-note">Telegram file_id: <code>{{ page.effective_image }}</code></div>
+        {% endif %}
+      {% endif %}
+      <div class="telegram-message">{{ page.preview_html|safe }}</div>
+      {% if page.effective_buttons_grid %}
+      <div class="telegram-buttons-grid mt-3">
+        {% for row in page.effective_buttons_grid %}
+        <div class="btn-row">
+          {% for button in row %}
+          <span class="btn btn-sm {{ button.bootstrap_class }}">{{ button.type_icon }} {{ button.label }}</span>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <h2 class="h5">Источники</h2>
+    <dl class="row">
+      <dt class="col-sm-5">Текст</dt><dd class="col-sm-7">{{ page.text_source }}</dd>
+      <dt class="col-sm-5">Изображение</dt><dd class="col-sm-7">{{ page.image_source }}</dd>
+      <dt class="col-sm-5">Кнопки</dt><dd class="col-sm-7">{{ page.buttons_source }}</dd>
+    </dl>
+
+    <h2 class="h5 mt-4">Переменные</h2>
+    {% if page.variables %}
+    <ul class="list-unstyled">
+      {% for variable in page.variables %}
+      <li class="mb-2"><code>{{ variable.name }}</code><div class="text-muted small">{{ variable.description }}</div></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="text-muted">Для этой страницы специальные переменные не описаны.</div>
+    {% endif %}
+  </div>
+</div>
+
+<h2 class="h5 mt-4">Raw effective text</h2>
+<pre class="bg-white border rounded p-3"><code>{{ page.effective_text }}</code></pre>
+<h2 class="h5 mt-4">Raw effective buttons JSON</h2>
+<pre class="bg-white border rounded p-3"><code>{{ page.effective_buttons_pretty }}</code></pre>
+{% endif %}
+{% endblock %}

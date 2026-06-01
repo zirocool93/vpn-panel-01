@@ -98,3 +98,48 @@ systemctl restart yadreno-vpn-web
 - посмотреть безопасный Web preview Telegram HTML и кнопок.
 
 Каждое сохранение и сброс пишутся в `admin_audit_log` с action `page.update` или `page.reset`.
+
+### Поиск, группы и предпросмотр
+
+В `/admin/pages` есть поиск по `page_key`, человекочитаемому названию, `text_default` и `text_custom`. Фильтр группирует страницы на главные, покупку, ключи, оплаты, ошибки и прочее.
+
+У каждой страницы есть:
+
+- `default` - значения из миграций проекта;
+- `custom` - значения администратора из Web или Telegram-редактора;
+- отдельная preview-страница `/admin/pages/{page_key}/preview`.
+
+Preview показывает источник текста, картинки и кнопок, безопасный браузерный предпросмотр Telegram HTML, визуальную сетку кнопок по `row`/`col`, raw effective text и raw effective buttons JSON.
+
+### Редактирование
+
+Текст сохраняется в `text_custom` и должен использовать поддерживаемый Telegram HTML. Картинка сохраняется в `image_custom`; допустимы `http://`, `https://` и Telegram `file_id`. Локальные пути, `data:` и `javascript:` запрещены.
+
+Кнопки редактируются через `buttons_custom` JSON. Можно скопировать `buttons_default` в custom, отредактировать копию и сохранить. Сброс текста, картинки и кнопок выполняется отдельными действиями:
+
+- `POST /admin/pages/{page_key}/reset-text`;
+- `POST /admin/pages/{page_key}/reset-image`;
+- `POST /admin/pages/{page_key}/reset-buttons`.
+
+Каждое изменение пишет audit log: `page.update`, `page.reset_text`, `page.reset_image`, `page.reset_buttons`, `page.copy_default_buttons`.
+
+### Переменные страниц
+
+В редакторе показываются известные переменные конкретной страницы, например `%тарифы%`, `%списокключей%`, `%ключ%`, `%ссылка%`, `%данныеэкрана%`. Кнопка "Скопировать" вставляет имя переменной в буфер обмена. Если для страницы специальных переменных нет, Web показывает отдельное сообщение.
+
+### Пример JSON кнопок
+
+```json
+[
+  {
+    "id": "btn_buy_key",
+    "label": "💳 Купить ключ",
+    "color": "secondary",
+    "row": 0,
+    "col": 0,
+    "is_hidden": false,
+    "action_type": "internal",
+    "action_value": "cmd_buy"
+  }
+]
+```

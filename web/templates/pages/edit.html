@@ -4,18 +4,20 @@
 <div class="alert alert-warning">Страница не найдена</div>
 {% else %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Редактировать <code>{{ page.page_key }}</code></h1>
-  <a class="btn btn-outline-secondary" href="/admin/pages/{{ page.page_key }}">Назад</a>
+  <div>
+    <h1 class="h3 mb-0">Редактировать: {{ page.label }}</h1>
+    <div class="text-muted"><code>{{ page.page_key }}</code> · {{ page.group_label }}</div>
+  </div>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="/admin/pages/{{ page.page_key }}">Назад</a>
+    <a class="btn btn-outline-info" href="/admin/pages/{{ page.page_key }}/preview">Preview</a>
+  </div>
 </div>
 
 {% if errors %}
 <div class="alert alert-danger">
   <div class="fw-semibold mb-1">Нужно исправить:</div>
-  <ul class="mb-0">
-    {% for error in errors %}
-    <li>{{ error }}</li>
-    {% endfor %}
-  </ul>
+  <ul class="mb-0">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 
@@ -24,15 +26,37 @@
     <label class="form-label">Custom HTML text</label>
     <textarea class="form-control font-monospace" name="text_custom" rows="14">{{ page.text_custom if page.text_custom is not none else page.text_default }}</textarea>
     <div class="form-text">Поддерживается ограниченный Telegram HTML: b, i, u, s, a, code, pre, blockquote, span tg-spoiler.</div>
+
+    <label class="form-label mt-3">Custom buttons JSON</label>
+    <textarea class="form-control font-monospace" name="buttons_custom" rows="14" placeholder='[]'>{{ page.buttons_custom_pretty if page.buttons_custom_pretty else "" }}</textarea>
+    <div class="form-text">Пусто - использовать default. Обязательны id, label, row, col, action_type.</div>
   </div>
   <div class="col-lg-5">
     <label class="form-label">Custom image</label>
     <input class="form-control" name="image_custom" value="{{ page.image_custom or '' }}" placeholder="https://... или Telegram file_id">
     <div class="form-text">Пусто - без custom изображения. Локальные пути, data: и javascript: запрещены.</div>
 
-    <label class="form-label mt-3">Custom buttons JSON</label>
-    <textarea class="form-control font-monospace" name="buttons_custom" rows="12" placeholder='[]'>{{ page.buttons_custom_pretty if page.buttons_custom_pretty else "" }}</textarea>
-    <div class="form-text">Пусто - использовать default. Формат: массив объектов с id, label, row, col, is_hidden, action_type, action_value.</div>
+    <div class="border rounded bg-white p-3 mt-3">
+      <h2 class="h6">Доступные переменные</h2>
+      {% if page.variables %}
+      {% for variable in page.variables %}
+      <div class="d-flex align-items-start justify-content-between gap-2 border-bottom py-2">
+        <div><code>{{ variable.name }}</code><div class="text-muted small">{{ variable.description }}</div></div>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-copy-text="{{ variable.name }}">Скопировать</button>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="text-muted">Для этой страницы специальные переменные не описаны.</div>
+      {% endif %}
+    </div>
+
+    <div class="border rounded bg-white p-3 mt-3">
+      <h2 class="h6">Default buttons</h2>
+      <form method="post" action="/admin/pages/{{ page.page_key }}/copy-default-buttons" data-confirm="Скопировать default buttons в custom?">
+        <button class="btn btn-sm btn-outline-primary mb-2">Скопировать default buttons в custom</button>
+      </form>
+      <pre class="small mb-0"><code>{{ page.buttons_default_pretty }}</code></pre>
+    </div>
   </div>
 
   <div class="col-12">
@@ -40,27 +64,5 @@
     <button class="btn btn-outline-secondary" formaction="/admin/pages/{{ page.page_key }}/validate">Проверить</button>
   </div>
 </form>
-
-<div class="row g-3 mt-2">
-  <div class="col-lg-6">
-    <h2 class="h5">Default buttons</h2>
-    <pre class="bg-white border rounded p-3"><code>{{ page.buttons_default_pretty }}</code></pre>
-  </div>
-  <div class="col-lg-6">
-    <h2 class="h5">Пример custom buttons</h2>
-    <pre class="bg-white border rounded p-3"><code>[
-  {
-    "id": "btn_example",
-    "label": "Открыть сайт",
-    "color": "primary",
-    "row": 0,
-    "col": 0,
-    "is_hidden": false,
-    "action_type": "url",
-    "action_value": "https://example.com"
-  }
-]</code></pre>
-  </div>
-</div>
 {% endif %}
 {% endblock %}
