@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Страницы бота</h1>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Ключ</th>
+        <th>Текст</th>
+        <th>Изображение</th>
+        <th>Кнопки</th>
+        <th>Обновлено</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for page in pages %}
+      <tr>
+        <td><code>{{ page.page_key }}</code></td>
+        <td>{% if page.has_text_custom %}<span class="badge text-bg-primary">custom</span>{% else %}<span class="text-muted">default</span>{% endif %}</td>
+        <td>{% if page.has_image_custom %}<span class="badge text-bg-primary">custom</span>{% elif page.image_default %}<span class="text-muted">default</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+        <td>{% if page.has_buttons_custom %}<span class="badge text-bg-primary">custom</span>{% else %}<span class="text-muted">default</span>{% endif %}</td>
+        <td>{{ page.updated_at or "-" }}</td>
+        <td class="text-end">
+          <a class="btn btn-sm btn-outline-secondary" href="/admin/pages/{{ page.page_key }}">Открыть</a>
+          <a class="btn btn-sm btn-outline-primary" href="/admin/pages/{{ page.page_key }}/edit">Редактировать</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

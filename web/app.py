@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from database.migrations import run_migrations
 from web import security
-from web.routers import audit, auth, dashboard, keys, payments, servers, settings, system, tariffs, users
+from web.routers import audit, auth, dashboard, keys, pages, payments, servers, settings, system, tariffs, users
 
 
 logger = logging.getLogger(__name__)
@@ -35,9 +35,9 @@ def create_app() -> FastAPI:
     app.include_router(tariffs.router)
     app.include_router(users.router)
     app.include_router(keys.router)
+    app.include_router(pages.router)
     app.include_router(payments.router)
     app.include_router(settings.router)
     app.include_router(system.router)
     app.include_router(audit.router)
     return app
-

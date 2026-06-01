@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not page %}
+<div class="alert alert-warning">Страница не найдена</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Страница <code>{{ page.page_key }}</code></h1>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="/admin/pages">Назад</a>
+    <a class="btn btn-primary" href="/admin/pages/{{ page.page_key }}/edit">Редактировать</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <h2 class="h5">Telegram preview</h2>
+    <div class="telegram-preview mb-3">
+      {% if page.effective_image %}
+      <div class="preview-image-note">Изображение: <code>{{ page.effective_image }}</code></div>
+      {% endif %}
+      <div class="telegram-message">{{ page.preview_html|safe }}</div>
+      {% if page.effective_buttons %}
+      <div class="telegram-buttons mt-3">
+        {% for button in page.effective_buttons %}
+          {% if not button.is_hidden %}
+          <span class="btn btn-sm btn-outline-primary mb-2">{{ button.label }}</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <h2 class="h5">Состояние</h2>
+    <dl class="row">
+      <dt class="col-sm-4">Текст</dt><dd class="col-sm-8">{{ "custom" if page.text_custom else "default" }}</dd>
+      <dt class="col-sm-4">Изображение</dt><dd class="col-sm-8">{{ "custom" if page.image_custom else "default" if page.image_default else "-" }}</dd>
+      <dt class="col-sm-4">Кнопки</dt><dd class="col-sm-8">{{ "custom" if page.buttons_custom else "default" }}</dd>
+      <dt class="col-sm-4">Обновлено</dt><dd class="col-sm-8">{{ page.updated_at or "-" }}</dd>
+    </dl>
+
+    <h2 class="h5 mt-4">Сброс custom</h2>
+    <form class="d-inline" method="post" action="/admin/pages/{{ page.page_key }}/reset" data-confirm="Сбросить custom текст?">
+      <input type="hidden" name="field" value="text">
+      <button class="btn btn-sm btn-outline-warning">Текст</button>
+    </form>
+    <form class="d-inline" method="post" action="/admin/pages/{{ page.page_key }}/reset" data-confirm="Сбросить custom изображение?">
+      <input type="hidden" name="field" value="image">
+      <button class="btn btn-sm btn-outline-warning">Изображение</button>
+    </form>
+    <form class="d-inline" method="post" action="/admin/pages/{{ page.page_key }}/reset" data-confirm="Сбросить custom кнопки?">
+      <input type="hidden" name="field" value="buttons">
+      <button class="btn btn-sm btn-outline-warning">Кнопки</button>
+    </form>
+  </div>
+</div>
+
+<h2 class="h5 mt-4">Effective buttons JSON</h2>
+<pre class="bg-white border rounded p-3"><code>{{ page.effective_buttons_pretty }}</code></pre>
+{% endif %}
+{% endblock %}
