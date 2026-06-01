@@ -110,7 +110,7 @@ def get_key_create_options(user_id: Optional[int] = None) -> dict[str, list[dict
         group_rows = conn.execute("SELECT * FROM tariff_groups ORDER BY sort_order, id").fetchall()
     return {
         "users": [dict(row) for row in user_rows],
-        "tariffs": db_tariffs.get_all_tariffs(include_hidden=False),
+        "tariffs": db_tariffs.get_all_tariffs(include_hidden=True),
         "servers": db_servers.get_active_servers(),
         "groups": [dict(row) for row in group_rows],
     }
@@ -196,8 +196,8 @@ async def create_key_for_user(
         return {"success": False, "key_id": None, "message": "User is banned", "panel_result": None}
 
     tariff = db_tariffs.get_tariff_by_id(tariff_id)
-    if not tariff or not tariff.get("is_active"):
-        return {"success": False, "key_id": None, "message": "Active tariff not found", "panel_result": None}
+    if not tariff:
+        return {"success": False, "key_id": None, "message": "Tariff not found", "panel_result": None}
 
     days = int(tariff.get("duration_days") or 0)
     if days <= 0 and not expires_at:

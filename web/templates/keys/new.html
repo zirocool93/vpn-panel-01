@@ -14,7 +14,7 @@
     <label class="form-label">Тариф</label>
     <select class="form-select" name="tariff_id" required>
       {% for tariff in options.tariffs %}
-      <option value="{{ tariff.id }}">{{ tariff.name }} — {{ tariff.duration_days }} дн., {{ tariff.traffic_limit_gb or 0 }} ГБ</option>
+      <option value="{{ tariff.id }}">{{ tariff.name }} — {{ tariff.duration_days }} дн., {{ tariff.traffic_limit_gb or 0 }} ГБ{% if not tariff.is_active %} - отключен{% endif %}</option>
       {% endfor %}
     </select>
   </div>

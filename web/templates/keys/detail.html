@@ -38,7 +38,7 @@
       <div class="col-md-5">
         <select class="form-select" name="tariff_id" required>
           {% for tariff in options.tariffs %}
-          <option value="{{ tariff.id }}" {% if tariff.id == key.tariff_id %}selected{% endif %}>{{ tariff.name }} ({{ tariff.duration_days }} дн.)</option>
+          <option value="{{ tariff.id }}" {% if tariff.id == key.tariff_id %}selected{% endif %}>{{ tariff.name }} ({{ tariff.duration_days }} дн.){% if not tariff.is_active %} - отключен{% endif %}</option>
           {% endfor %}
         </select>
       </div>
