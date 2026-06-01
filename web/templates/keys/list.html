@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">Ключи</h1>
+<form class="row g-2 mb-3"><div class="col-md-4"><input class="form-control" name="q" value="{{ q }}" placeholder="email, uuid, username"></div><div class="col-md-3"><input class="form-control" name="user_id" value="{{ user_id or '' }}" placeholder="user_id"></div><div class="col"><button class="btn btn-outline-primary">Фильтр</button></div></form>
+<table class="table table-hover"><tr><th>ID</th><th>User</th><th>Email</th><th>Тариф</th><th>Сервер</th><th>Истекает</th></tr>
+{% for k in keys %}<tr><td><a href="/admin/keys/{{ k.id }}">{{ k.id }}</a></td><td>{{ k.username or k.telegram_id }}</td><td>{{ k.panel_email }}</td><td>{{ k.tariff_name }}</td><td>{{ k.server_name }}</td><td>{{ k.expires_at }}</td></tr>{% endfor %}
+</table>
+{% endblock %}
+

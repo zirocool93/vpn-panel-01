@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">{{ title }}</h1>
+<form method="post" class="row g-3">
+  {% for name,label,type in [('name','Name','text'),('duration_days','Days','number'),('price_rub','Price RUB','number'),('price_cents','USDT cents','number'),('price_stars','Stars','number'),('traffic_limit_gb','Traffic GB','number'),('max_ips','Max IPs','number'),('group_id','Group ID','number'),('display_order','Order','number')] %}
+  <div class="col-md-4"><label class="form-label">{{ label }}</label><input class="form-control" name="{{ name }}" type="{{ type }}" value="{{ tariff[name] if tariff else (1 if name in ['duration_days','max_ips','group_id'] else 0 if type == 'number' else '') }}" required></div>
+  {% endfor %}
+  <div class="col-12"><button class="btn btn-primary">Сохранить</button> <a class="btn btn-link" href="/admin/tariffs">Отмена</a></div>
+</form>
+{% endblock %}
+

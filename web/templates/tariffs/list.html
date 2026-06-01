@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h3">Тарифы</h1><a class="btn btn-primary" href="/admin/tariffs/new">Добавить</a></div>
+<table class="table table-hover"><tr><th>ID</th><th>Название</th><th>Дни</th><th>₽</th><th>Stars</th><th>GB</th><th>Активен</th><th></th></tr>
+{% for t in tariffs %}<tr><td>{{ t.id }}</td><td><a href="/admin/tariffs/{{ t.id }}">{{ t.name }}</a></td><td>{{ t.duration_days }}</td><td>{{ t.price_rub }}</td><td>{{ t.price_stars }}</td><td>{{ t.traffic_limit_gb }}</td><td>{{ "да" if t.is_active else "нет" }}</td><td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/admin/tariffs/{{ t.id }}/edit">Edit</a><form class="d-inline" method="post" action="/admin/tariffs/{{ t.id }}/toggle"><button class="btn btn-sm btn-outline-warning">Toggle</button></form></td></tr>{% endfor %}
+</table>
+{% endblock %}
+

@@ -1,0 +1,2 @@
+"""FastAPI Web admin package."""
+

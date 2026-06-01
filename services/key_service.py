@@ -5,7 +5,6 @@ from typing import Any, Optional
 
 from database import db_keys
 from database.connection import get_db
-from bot.services import vpn_api
 
 
 def list_keys(user_id: Optional[int] = None, search: Optional[str] = None, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
@@ -59,14 +58,17 @@ def extend_key(key_id: int, days: int) -> bool:
 
 
 async def reset_key_traffic(key_id: int) -> bool:
+    from bot.services import vpn_api
+
     db_keys.reset_key_traffic_notification(key_id)
     return await vpn_api.reset_key_traffic_if_active(key_id)
 
 
 async def sync_key_to_panel(key_id: int) -> dict[str, int]:
+    from bot.services import vpn_api
+
     return await vpn_api.sync_key_to_panel_state(key_id)
 
 
 def delete_key(key_id: int) -> bool:
     return db_keys.delete_vpn_key(key_id)
-

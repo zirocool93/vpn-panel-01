@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">Платежи</h1>
+<form class="row g-2 mb-3"><div class="col-md-3"><input class="form-control" name="user_id" value="{{ filters.user_id or '' }}" placeholder="user_id"></div><div class="col-md-3"><input class="form-control" name="status" value="{{ filters.status }}" placeholder="status"></div><div class="col-md-3"><input class="form-control" name="payment_type" value="{{ filters.payment_type }}" placeholder="type"></div><div class="col"><button class="btn btn-outline-primary">Фильтр</button></div></form>
+<div class="alert alert-light">За 30 дней: {{ stats.paid_count or 0 }} платежей</div>
+<table class="table table-hover"><tr><th>ID</th><th>User</th><th>Тип</th><th>Статус</th><th>Сумма</th><th>Дата</th></tr>
+{% for p in payments %}<tr><td>{{ p.id }}</td><td>{{ p.username or p.telegram_id }}</td><td>{{ p.payment_type }}</td><td>{{ p.status }}</td><td>{{ p.amount_cents or p.amount_stars or p.price_rub or 0 }}</td><td>{{ p.paid_at }}</td></tr>{% endfor %}
+</table>
+{% endblock %}
+

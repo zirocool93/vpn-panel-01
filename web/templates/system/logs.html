@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">Система</h1>
+<dl class="row"><dt class="col-sm-3">Branch</dt><dd class="col-sm-9">{{ current_branch }}</dd><dt class="col-sm-3">Commit</dt><dd class="col-sm-9">{{ current_commit }}</dd><dt class="col-sm-3">Обновлений</dt><dd class="col-sm-9">{{ update_check.commits_behind if update_check.success else "ошибка проверки" }}</dd></dl>
+<a class="btn btn-outline-primary" href="/admin/system/download-log">Скачать bot.log</a>
+<form class="d-inline" method="post" action="/admin/system/clear-log" data-confirm="Очистить bot.log?"><button class="btn btn-outline-danger">Очистить bot.log</button></form>
+<h2 class="h5 mt-4">Последние строки bot.log</h2>
+<pre class="log-box">{{ log_tail }}</pre>
+{% endblock %}
+

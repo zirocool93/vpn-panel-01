@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h3">Пользователи</h1></div>
+<form class="row g-2 mb-3"><div class="col-md-4"><input class="form-control" name="q" value="{{ q }}" placeholder="telegram_id или username"></div><div class="col"><button class="btn btn-outline-primary">Найти</button></div></form>
+<table class="table table-hover"><tr><th>ID</th><th>Telegram</th><th>Username</th><th>Баланс</th><th>Бан</th></tr>
+{% for u in users %}<tr><td><a href="/admin/users/{{ u.id }}">{{ u.id }}</a></td><td>{{ u.telegram_id }}</td><td>{{ u.username or "" }}</td><td>{{ u.personal_balance }}</td><td>{{ "да" if u.is_banned else "нет" }}</td></tr>{% endfor %}
+</table>
+{% endblock %}
+

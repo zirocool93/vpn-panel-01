@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">Аудит</h1>
+<form class="row g-2 mb-3"><div class="col-md-4"><input class="form-control" name="action" value="{{ action }}" placeholder="action"></div><div class="col"><button class="btn btn-outline-primary">Фильтр</button></div></form>
+<table class="table table-sm table-hover"><tr><th>Дата</th><th>Admin</th><th>Action</th><th>Entity</th><th>Details</th></tr>
+{% for r in rows %}<tr><td>{{ r.created_at }}</td><td>{{ r.admin_username or r.admin_user_id }}</td><td>{{ r.action }}</td><td>{{ r.entity_type }} {{ r.entity_id or "" }}</td><td><code>{{ r.details or "" }}</code></td></tr>{% endfor %}
+</table>
+{% endblock %}
+

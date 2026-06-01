@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="login-wrap">
+  <h1 class="h4 mb-3">Web-админка</h1>
+  <form method="post" action="/login" class="vstack gap-3">
+    <input class="form-control" name="username" placeholder="Username" autocomplete="username" required>
+    <input class="form-control" name="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn btn-primary" type="submit">Войти</button>
+  </form>
+</div>
+{% endblock %}
+

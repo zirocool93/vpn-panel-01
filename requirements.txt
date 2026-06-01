@@ -7,4 +7,5 @@ uvicorn[standard]
 jinja2
 python-multipart
 passlib[bcrypt]
+bcrypt<5
 itsdangerous

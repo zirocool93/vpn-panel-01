@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not server %}<div class="alert alert-warning">Сервер не найден</div>{% else %}
+<div class="d-flex justify-content-between"><h1 class="h3">{{ server.name }}</h1><a class="btn btn-outline-secondary" href="/admin/servers/{{ server.id }}/edit">Редактировать</a></div>
+<dl class="row"><dt class="col-sm-3">Host</dt><dd class="col-sm-9">{{ server.protocol }}://{{ server.host }}:{{ server.port }}/{{ server.web_base_path }}</dd><dt class="col-sm-3">Login</dt><dd class="col-sm-9">{{ server.login }}</dd><dt class="col-sm-3">Password</dt><dd class="col-sm-9">********</dd><dt class="col-sm-3">Активен</dt><dd class="col-sm-9">{{ "да" if server.is_active else "нет" }}</dd></dl>
+<form class="d-inline" method="post" action="/admin/servers/{{ server.id }}/test"><button class="btn btn-primary">Проверить подключение</button></form>
+<form class="d-inline" method="post" action="/admin/servers/{{ server.id }}/delete" data-confirm="Удалить сервер?"><button class="btn btn-danger">Удалить</button></form>
+{% endif %}
+{% endblock %}
+

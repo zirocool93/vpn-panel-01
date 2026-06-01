@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">Настройки</h1>
+<form method="post" class="row g-3">
+{% for key, value in settings.items() %}
+  <div class="col-md-4"><label class="form-label">{{ key }}</label><input class="form-control" name="{{ key }}" value="{{ value }}"></div>
+{% endfor %}
+  <div class="col-12"><button class="btn btn-primary">Сохранить</button></div>
+</form>
+{% endblock %}
+

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not key %}<div class="alert alert-warning">Ключ не найден</div>{% else %}
+<h1 class="h3">Ключ #{{ key.id }}</h1>
+<dl class="row"><dt class="col-sm-3">Пользователь</dt><dd class="col-sm-9">{{ key.username or key.telegram_id }}</dd><dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ key.panel_email }}</dd><dt class="col-sm-3">UUID</dt><dd class="col-sm-9">{{ key.client_uuid }}</dd><dt class="col-sm-3">Истекает</dt><dd class="col-sm-9">{{ key.expires_at }}</dd><dt class="col-sm-3">Трафик</dt><dd class="col-sm-9">{{ key.traffic_used }} / {{ key.traffic_limit }}</dd></dl>
+<form method="post" action="/admin/keys/{{ key.id }}/extend" class="row g-2 mb-3"><div class="col-md-3"><input class="form-control" name="days" type="number" placeholder="дней" required></div><div class="col"><button class="btn btn-primary">Продлить</button></div></form>
+<form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/reset-traffic" data-confirm="Сбросить трафик?"><button class="btn btn-warning">Сбросить трафик</button></form>
+<form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/sync"><button class="btn btn-outline-primary">Синхронизировать</button></form>
+<form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/delete" data-confirm="Удалить ключ?"><button class="btn btn-danger">Удалить</button></form>
+{% endif %}
+{% endblock %}
+

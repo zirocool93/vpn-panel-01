@@ -5,13 +5,24 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from passlib.context import CryptContext
+import bcrypt
 
 from database.connection import get_db
 from database.db_settings import get_setting
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def _hash_password(password: str) -> str:
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        raise ValueError("password must be 72 bytes or shorter for bcrypt")
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(password: str, password_hash: str) -> bool:
+    password_bytes = password.encode("utf-8")
+    if len(password_bytes) > 72:
+        return False
+    return bcrypt.checkpw(password_bytes, password_hash.encode("utf-8"))
 
 
 def create_admin_user(username: str, password: str, role: str = "owner") -> int:
@@ -22,7 +33,7 @@ def create_admin_user(username: str, password: str, role: str = "owner") -> int:
     if not password:
         raise ValueError("password must not be empty")
 
-    password_hash = pwd_context.hash(password)
+    password_hash = _hash_password(password)
     with get_db() as conn:
         cursor = conn.execute(
             """
@@ -44,7 +55,7 @@ def verify_admin_credentials(username: str, password: str) -> Optional[dict[str,
     if not row:
         return None
     user = dict(row)
-    if not pwd_context.verify(password, user["password_hash"]):
+    if not _verify_password(password, user["password_hash"]):
         return None
     return user
 
@@ -120,4 +131,3 @@ def get_session_by_token(session_token: str) -> Optional[dict[str, Any]]:
             (session_token,),
         ).fetchone()
         return dict(row) if row else None
-

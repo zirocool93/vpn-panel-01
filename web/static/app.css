@@ -1,0 +1,7 @@
+body { background: #f6f7f9; }
+main { max-width: 1440px; }
+.login-wrap { max-width: 360px; margin: 10vh auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.stat-card { border-radius: 8px; border: 1px solid #e6e8eb; }
+.log-box { max-height: 520px; overflow: auto; background: #111827; color: #e5e7eb; padding: 16px; border-radius: 8px; }
+table { background: #fff; }
+

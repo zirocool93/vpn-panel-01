@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3">{{ title }}</h1>
+<form method="post" class="row g-3">
+  <div class="col-md-6"><label class="form-label">Name</label><input class="form-control" name="name" value="{{ server.name if server else '' }}" required></div>
+  <div class="col-md-6"><label class="form-label">Host</label><input class="form-control" name="host" value="{{ server.host if server else '' }}" required></div>
+  <div class="col-md-3"><label class="form-label">Port</label><input class="form-control" name="port" type="number" value="{{ server.port if server else 443 }}" required></div>
+  <div class="col-md-3"><label class="form-label">Protocol</label><select class="form-select" name="protocol"><option value="https">https</option><option value="http" {% if server and server.protocol == 'http' %}selected{% endif %}>http</option></select></div>
+  <div class="col-md-6"><label class="form-label">Web base path</label><input class="form-control" name="web_base_path" value="{{ server.web_base_path if server else '' }}"></div>
+  <div class="col-md-6"><label class="form-label">Login</label><input class="form-control" name="login" value="{{ server.login if server else '' }}" required></div>
+  <div class="col-md-6"><label class="form-label">{{ 'New password' if server else 'Password' }}</label><input class="form-control" name="{{ 'new_password' if server else 'password' }}" type="password" {% if not server %}required{% endif %}></div>
+  <div class="col-md-3"><label class="form-label">Group ID</label><input class="form-control" name="group_id" type="number" value="1"></div>
+  <div class="col-12"><button class="btn btn-primary">Сохранить</button> <a class="btn btn-link" href="/admin/servers">Отмена</a></div>
+</form>
+{% endblock %}
+

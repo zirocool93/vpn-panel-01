@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not user %}<div class="alert alert-warning">Пользователь не найден</div>{% else %}
+<h1 class="h3">Пользователь {{ user.telegram_id }}</h1>
+<dl class="row"><dt class="col-sm-3">Username</dt><dd class="col-sm-9">{{ user.username or "" }}</dd><dt class="col-sm-3">Баланс</dt><dd class="col-sm-9">{{ user.personal_balance }}</dd><dt class="col-sm-3">Бан</dt><dd class="col-sm-9">{{ "да" if user.is_banned else "нет" }}</dd></dl>
+<form class="d-inline" method="post" action="/admin/users/{{ user.id }}/ban" data-confirm="Заблокировать пользователя?"><button class="btn btn-warning">Бан</button></form>
+<form class="d-inline" method="post" action="/admin/users/{{ user.id }}/unban"><button class="btn btn-outline-success">Разбан</button></form>
+<form method="post" action="/admin/users/{{ user.id }}/balance" class="row g-2 mt-3">
+  <div class="col-md-3"><input class="form-control" name="amount_delta_cents" type="number" placeholder="дельта в копейках" required></div>
+  <div class="col-md-5"><input class="form-control" name="reason" placeholder="причина изменения" required></div>
+  <div class="col"><button class="btn btn-primary">Изменить баланс</button></div>
+</form>
+<h2 class="h5 mt-4">Ключи</h2>
+<table class="table table-sm"><tr><th>ID</th><th>Email</th><th>Истекает</th></tr>{% for k in keys %}<tr><td><a href="/admin/keys/{{ k.id }}">{{ k.id }}</a></td><td>{{ k.panel_email }}</td><td>{{ k.expires_at }}</td></tr>{% endfor %}</table>
+<h2 class="h5 mt-4">Платежи</h2>
+<table class="table table-sm"><tr><th>ID</th><th>Тип</th><th>Статус</th><th>Дата</th></tr>{% for p in payments %}<tr><td>{{ p.id }}</td><td>{{ p.payment_type }}</td><td>{{ p.status }}</td><td>{{ p.paid_at }}</td></tr>{% endfor %}</table>
+{% endif %}
+{% endblock %}
+

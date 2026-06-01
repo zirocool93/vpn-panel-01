@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h3 mb-4">Dashboard</h1>
+<div class="row g-3 mb-4">
+  {% set cards = [
+    ("Пользователи", summary.users_total),
+    ("Активные пользователи", summary.users_active),
+    ("Ключи", summary.keys_total),
+    ("Активные ключи", summary.keys_active),
+    ("Серверы", summary.servers_total),
+    ("Активные серверы", summary.servers_active),
+    ("Платежи сегодня", summary.payments_today.paid_count),
+    ("Платежи 7 дней", summary.payments_7_days.paid_count),
+    ("Платежи 30 дней", summary.payments_30_days.paid_count)
+  ] %}
+  {% for label, value in cards %}
+  <div class="col-12 col-md-4 col-xl-2">
+    <div class="card stat-card"><div class="card-body"><div class="text-muted small">{{ label }}</div><div class="fs-3">{{ value or 0 }}</div></div></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <h2 class="h5">Последние пользователи</h2>
+    <table class="table table-sm"><tr><th>ID</th><th>Telegram</th><th>Username</th></tr>
+      {% for user in summary.recent_users %}<tr><td><a href="/admin/users/{{ user.id }}">{{ user.id }}</a></td><td>{{ user.telegram_id }}</td><td>{{ user.username or "" }}</td></tr>{% endfor %}
+    </table>
+  </div>
+  <div class="col-lg-6">
+    <h2 class="h5">Последние платежи</h2>
+    <table class="table table-sm"><tr><th>ID</th><th>Пользователь</th><th>Тип</th><th>Статус</th></tr>
+      {% for p in summary.recent_payments %}<tr><td>{{ p.id }}</td><td>{{ p.username or p.telegram_id }}</td><td>{{ p.payment_type }}</td><td>{{ p.status }}</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<h2 class="h5 mt-4">Серверы</h2>
+<table class="table table-sm"><tr><th>ID</th><th>Название</th><th>Host</th><th>Активен</th></tr>
+  {% for server in summary.servers %}<tr><td>{{ server.id }}</td><td><a href="/admin/servers/{{ server.id }}">{{ server.name }}</a></td><td>{{ server.host }}:{{ server.port }}</td><td>{{ "да" if server.is_active else "нет" }}</td></tr>{% endfor %}
+</table>
+{% endblock %}
+

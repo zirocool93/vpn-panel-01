@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from database import db_servers
-from bot.services.vpn_api import test_server_connection as _test_server_connection
 
 
 def list_servers() -> list[dict[str, Any]]:
@@ -41,8 +40,9 @@ def toggle_server_active(server_id: int) -> Optional[bool]:
 
 
 async def test_server_connection(server_id: int) -> dict[str, Any]:
+    from bot.services.vpn_api import test_server_connection as _test_server_connection
+
     server = get_server(server_id)
     if not server:
         return {"success": False, "message": "Сервер не найден", "stats": None}
     return await _test_server_connection(server)
-
