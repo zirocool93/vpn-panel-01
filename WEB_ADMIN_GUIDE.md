@@ -25,6 +25,13 @@ WEB_HOST=127.0.0.1 WEB_PORT=8080 python web_main.py
 
 ## systemd
 
+`install.sh install`, `install.sh update` and `install.sh reset` install and restart both services:
+
+- `yadreno-vpn` for the Telegram bot;
+- `yadreno-vpn-web` for the Web admin.
+
+The installer creates `/etc/yadreno-vpn/web.env` once and preserves it on future updates/resets. Keep `WEB_SECRET_KEY` there stable, otherwise active Web sessions will be invalidated after restart.
+
 ```bash
 cp yadreno-vpn-web.service /etc/systemd/system/
 systemctl daemon-reload
@@ -38,7 +45,14 @@ systemctl status yadreno-vpn-web
 `8080` напрямую в интернет. Для production задайте стабильный секрет:
 
 ```bash
-export WEB_SECRET_KEY="long-random-secret"
+install -d -m 700 /etc/yadreno-vpn
+cat > /etc/yadreno-vpn/web.env <<'EOF'
+WEB_HOST=127.0.0.1
+WEB_PORT=8080
+WEB_SECRET_KEY=replace-with-long-random-secret
+EOF
+chmod 600 /etc/yadreno-vpn/web.env
+systemctl restart yadreno-vpn-web
 ```
 
 Лучше положить его в systemd `EnvironmentFile`, чтобы сессии не сбрасывались
@@ -55,4 +69,3 @@ export WEB_SECRET_KEY="long-random-secret"
 - audit log действий Web-администраторов.
 
 Опасные действия требуют подтверждения в браузере и пишутся в audit log.
-

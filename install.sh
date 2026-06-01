@@ -20,6 +20,9 @@ INSTALL_DIR="/root/vpn-panel-01"
 REPO_URL="https://github.com/zirocool93/vpn-panel-01.git"
 VENV_DIR="$INSTALL_DIR/venv"
 SERVICE_FILE="yadreno-vpn.service"
+WEB_SERVICE_FILE="yadreno-vpn-web.service"
+WEB_ENV_DIR="/etc/yadreno-vpn"
+WEB_ENV_FILE="$WEB_ENV_DIR/web.env"
 BOT_DB_RELATIVE_PATH="database/vpn_bot.db"
 
 # Цвета для вывода
@@ -153,6 +156,38 @@ update_python_deps() {
 }
 
 # Настройка systemd сервиса
+setup_web_env() {
+    mkdir -p "$WEB_ENV_DIR"
+
+    if [ ! -f "$WEB_ENV_FILE" ]; then
+        python_bin="$VENV_DIR/bin/python"
+        if [ ! -x "$python_bin" ]; then
+            python_bin="python3"
+        fi
+        web_secret="$("$python_bin" - <<'PY'
+import secrets
+print(secrets.token_urlsafe(48))
+PY
+)"
+        cat > "$WEB_ENV_FILE" << EOF
+WEB_HOST=127.0.0.1
+WEB_PORT=8080
+WEB_SECRET_KEY=$web_secret
+EOF
+        chmod 600 "$WEB_ENV_FILE"
+        print_ok "Web env created: $WEB_ENV_FILE"
+    else
+        chmod 600 "$WEB_ENV_FILE"
+        print_ok "Web env preserved: $WEB_ENV_FILE"
+    fi
+}
+
+run_database_migrations() {
+    print_header "Applying database migrations"
+    "$VENV_DIR/bin/python" -c "from database.migrations import run_migrations; run_migrations(); print('ok')"
+    print_ok "Database migrations applied"
+}
+
 setup_systemd() {
     print_header "Настройка автозапуска (systemd)"
 
@@ -173,9 +208,30 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
+    cat > "$INSTALL_DIR/$WEB_SERVICE_FILE" << EOF
+[Unit]
+Description=Yadreno VPN Web Admin
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$INSTALL_DIR
+EnvironmentFile=$WEB_ENV_FILE
+ExecStart=$VENV_DIR/bin/python web_main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    setup_web_env
     cp "$INSTALL_DIR/$SERVICE_FILE" /etc/systemd/system/
+    cp "$INSTALL_DIR/$WEB_SERVICE_FILE" /etc/systemd/system/
     systemctl daemon-reload
     systemctl enable yadreno-vpn > /dev/null 2>&1
+    systemctl enable yadreno-vpn-web > /dev/null 2>&1
 
     print_ok "systemd сервис установлен и включён в автозапуск"
 }
@@ -211,8 +267,18 @@ check_runtime_environment() {
 }
 
 # Запуск сервиса
+check_lxc_vpn_device() {
+    if [ ! -c /dev/net/tun ]; then
+        print_warn "/dev/net/tun not found. VPN features in Proxmox LXC require TUN passthrough."
+        echo "Proxmox CT config example:"
+        echo "  lxc.cgroup2.devices.allow: c 10:200 rwm"
+        echo "  lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
+    fi
+}
+
 start_service() {
     systemctl start yadreno-vpn
+    systemctl start yadreno-vpn-web
     sleep 2
 
     if systemctl is-active --quiet yadreno-vpn; then
@@ -222,6 +288,14 @@ start_service() {
         echo "  systemctl status yadreno-vpn"
         echo "  journalctl -u yadreno-vpn -n 50"
     fi
+
+    if systemctl is-active --quiet yadreno-vpn-web; then
+        print_ok "Web admin is running"
+    else
+        print_err "Web admin failed to start. Check logs:"
+        echo "  systemctl status yadreno-vpn-web"
+        echo "  journalctl -u yadreno-vpn-web -n 50"
+    fi
 }
 
 # ============================================================
@@ -230,6 +304,7 @@ start_service() {
 do_install() {
     print_header "🚀 Установка Yadreno VPN"
     check_runtime_environment
+    check_lxc_vpn_device
 
     # Проверяем, не установлен ли уже
     if [ -d "$INSTALL_DIR" ] && [ -d "$INSTALL_DIR/.git" ]; then
@@ -248,6 +323,7 @@ do_install() {
             return 0
         fi
         systemctl stop yadreno-vpn 2>/dev/null || true
+        systemctl stop yadreno-vpn-web 2>/dev/null || true
         # Сохраняем config.py и базу данных
         if [ -f "$INSTALL_DIR/config.py" ]; then
             cp "$INSTALL_DIR/config.py" /tmp/yadreno_config_backup.py
@@ -291,6 +367,7 @@ do_install() {
 
     # Виртуальное окружение и зависимости
     setup_venv
+    run_database_migrations
 
     # Настройка автозапуска
     setup_systemd
@@ -315,6 +392,7 @@ do_install() {
 do_soft_update() {
     print_header "🔄 Мягкое обновление"
     check_runtime_environment
+    check_lxc_vpn_device
 
     if [ ! -d "$INSTALL_DIR/.git" ]; then
         print_err "Yadreno VPN не установлен в $INSTALL_DIR"
@@ -347,9 +425,11 @@ do_soft_update() {
     # Применяем возможные изменения systemd unit и обновляем зависимости
     setup_systemd
     update_python_deps
+    run_database_migrations
 
     # Перезапуск
     systemctl restart yadreno-vpn
+    systemctl restart yadreno-vpn-web
     sleep 2
 
     if systemctl is-active --quiet yadreno-vpn; then
@@ -357,6 +437,13 @@ do_soft_update() {
     else
         print_err "Бот не запустился после обновления"
         echo "  systemctl status yadreno-vpn"
+    fi
+
+    if systemctl is-active --quiet yadreno-vpn-web; then
+        print_ok "Web admin restarted and is running"
+    else
+        print_err "Web admin failed to start after update"
+        echo "  systemctl status yadreno-vpn-web"
     fi
 }
 
@@ -366,6 +453,7 @@ do_soft_update() {
 do_hard_reset() {
     print_header "⚠️  Жёсткая перезапись"
     check_runtime_environment
+    check_lxc_vpn_device
 
     if [ ! -d "$INSTALL_DIR/.git" ]; then
         print_err "Yadreno VPN не установлен в $INSTALL_DIR"
@@ -399,9 +487,11 @@ do_hard_reset() {
     # Применяем возможные изменения systemd unit и обновляем зависимости
     setup_systemd
     update_python_deps
+    run_database_migrations
 
     # Перезапуск
     systemctl restart yadreno-vpn
+    systemctl restart yadreno-vpn-web
     sleep 2
 
     if systemctl is-active --quiet yadreno-vpn; then
@@ -409,6 +499,13 @@ do_hard_reset() {
     else
         print_err "Бот не запустился после перезаписи"
         echo "  systemctl status yadreno-vpn"
+    fi
+
+    if systemctl is-active --quiet yadreno-vpn-web; then
+        print_ok "Web admin restarted and is running"
+    else
+        print_err "Web admin failed to start after reset"
+        echo "  systemctl status yadreno-vpn-web"
     fi
 }
 
