@@ -32,6 +32,14 @@ WEB_HOST=127.0.0.1 WEB_PORT=8080 python web_main.py
 
 The installer creates `/etc/yadreno-vpn/web.env` once and preserves it on future updates/resets. Keep `WEB_SECRET_KEY` there stable, otherwise active Web sessions will be invalidated after restart.
 
+On first interactive install the script asks for the Web admin username and password. In automatic mode pass them as arguments:
+
+```bash
+bash install.sh install <BOT_TOKEN> <ADMIN_ID> <WEB_ADMIN_USERNAME> <WEB_ADMIN_PASSWORD>
+```
+
+If an admin already exists in `admin_users`, install/update/reset keep it unchanged.
+
 ```bash
 cp yadreno-vpn-web.service /etc/systemd/system/
 systemctl daemon-reload

@@ -6,6 +6,7 @@ Run:
 from __future__ import annotations
 
 import getpass
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -19,16 +20,35 @@ from database.migrations import run_migrations  # noqa: E402
 from services.auth_service import create_admin_user  # noqa: E402
 
 
+def admin_users_exist() -> bool:
+    from database.connection import get_db
+
+    with get_db() as conn:
+        row = conn.execute("SELECT COUNT(*) AS count FROM admin_users").fetchone()
+        return bool(row and row["count"])
+
+
 def main() -> int:
     run_migrations()
 
-    username = input("Username: ").strip()
+    skip_if_exists = os.getenv("WEB_ADMIN_SKIP_IF_EXISTS") == "1"
+    if skip_if_exists and admin_users_exist():
+        print("Web admin already exists; skipping.")
+        return 0
+
+    username = (os.getenv("WEB_ADMIN_USERNAME") or "").strip()
+    if not username:
+        username = input("Username: ").strip()
     if not username:
         print("Ошибка: username не может быть пустым.")
         return 1
 
-    password = getpass.getpass("Password: ")
-    password_confirm = getpass.getpass("Confirm password: ")
+    password = os.getenv("WEB_ADMIN_PASSWORD")
+    if password is None:
+        password = getpass.getpass("Password: ")
+        password_confirm = getpass.getpass("Confirm password: ")
+    else:
+        password_confirm = password
     if password != password_confirm:
         print("Ошибка: пароли не совпадают.")
         return 1
@@ -51,4 +71,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
