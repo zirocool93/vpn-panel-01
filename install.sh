@@ -6,7 +6,7 @@
 # === АВТОМАТИЧЕСКИЙ ЗАПУСК (БЕЗ ДИАЛОГОВ) ===
 #
 # 1. Запуск прямо с GitHub (для чистой установки или если папки ещё нет):
-# bash <(curl -sL https://raw.githubusercontent.com/zirocool93/vpn-panel-01/main/install.sh) install <BOT_TOKEN> <ADMIN_ID> <WEB_ADMIN_USERNAME> <WEB_ADMIN_PASSWORD>
+# bash <(curl -sL https://raw.githubusercontent.com/zirocool93/vpn-panel-01/main/install.sh) install <BOT_TOKEN> <ADMIN_ID> [WEB_ADMIN_USERNAME] [WEB_ADMIN_PASSWORD]
 # bash <(curl -sL https://raw.githubusercontent.com/zirocool93/vpn-panel-01/main/install.sh) update [COMMIT_OR_BRANCH]
 # bash <(curl -sL https://raw.githubusercontent.com/zirocool93/vpn-panel-01/main/install.sh) reset [COMMIT_OR_BRANCH]
 #
@@ -208,13 +208,18 @@ setup_initial_web_admin() {
         return 0
     fi
 
-    if [ "$AUTO_MODE" = "1" ]; then
-        if [ -z "$WEB_ADMIN_USERNAME" ] || [ -z "$WEB_ADMIN_PASSWORD" ]; then
+    if [ -z "$WEB_ADMIN_USERNAME" ] || [ -z "$WEB_ADMIN_PASSWORD" ]; then
+        if [ ! -t 0 ]; then
+            if [ "$REQUIRE_WEB_ADMIN" = "1" ]; then
+                print_err "Web admin username/password are required for first install."
+                echo "Usage: bash install.sh install <BOT_TOKEN> <ADMIN_ID> <WEB_ADMIN_USERNAME> <WEB_ADMIN_PASSWORD>"
+                return 1
+            fi
             print_warn "Web admin was not created: WEB_ADMIN_USERNAME/WEB_ADMIN_PASSWORD are not set."
             echo "Run later: cd $INSTALL_DIR && source venv/bin/activate && python tools/create_web_admin.py"
             return 0
         fi
-    else
+
         while true; do
             read -p "Web admin username [admin]: " web_admin_username
             web_admin_username=${web_admin_username:-admin}
@@ -431,6 +436,7 @@ do_install() {
     # Виртуальное окружение и зависимости
     setup_venv
     run_database_migrations
+    REQUIRE_WEB_ADMIN=1
     setup_initial_web_admin
 
     # Настройка автозапуска
@@ -615,9 +621,9 @@ if [ -n "$1" ]; then
     
     case "$ACTION" in
         install)
-            if [ -z "$2" ] || [ -z "$3" ] || { [ -z "${4:-$WEB_ADMIN_USERNAME}" ] || [ -z "${5:-$WEB_ADMIN_PASSWORD}" ]; }; then
-                print_err "Для автоматической установки требуются BOT_TOKEN, ADMIN_ID, WEB_ADMIN_USERNAME и WEB_ADMIN_PASSWORD"
-                echo "Использование: bash install.sh install <BOT_TOKEN> <ADMIN_ID> <WEB_ADMIN_USERNAME> <WEB_ADMIN_PASSWORD>"
+            if [ -z "$2" ] || [ -z "$3" ]; then
+                print_err "Для автоматической установки требуются BOT_TOKEN и ADMIN_ID"
+                echo "Использование: bash install.sh install <BOT_TOKEN> <ADMIN_ID> [WEB_ADMIN_USERNAME] [WEB_ADMIN_PASSWORD]"
                 exit 1
             fi
             export BOT_TOKEN="$2"
