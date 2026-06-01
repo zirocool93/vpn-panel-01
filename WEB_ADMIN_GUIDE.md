@@ -18,22 +18,14 @@ python tools/create_web_admin.py
 ```bash
 cd /root/vpn-panel-01
 source venv/bin/activate
-WEB_HOST=127.0.0.1 WEB_PORT=8080 python web_main.py
+WEB_HOST=0.0.0.0 WEB_PORT=8080 python web_main.py
 ```
 
-Откройте `http://127.0.0.1:8080/login` с сервера или через SSH tunnel.
+Откройте `http://SERVER_IP:8080/login` или `http://127.0.0.1:8080/login` с самого сервера.
 
 Корневой адрес `/` перенаправляет на `/login`.
 
-Для прямого доступа с другого компьютера в LAN, например `http://10.5.2.57:8080/`, Web-сервис должен слушать внешний интерфейс:
-
-```bash
-sed -i 's/^WEB_HOST=.*/WEB_HOST=0.0.0.0/' /etc/yadreno-vpn/web.env
-systemctl restart yadreno-vpn-web
-systemctl status yadreno-vpn-web
-```
-
-После проверки лучше закрыть порт firewall-ом или поставить reverse proxy с HTTPS.
+Installer creates new Web env files with `WEB_HOST=0.0.0.0`, so direct LAN access such as `http://10.5.2.57:8080/` works without extra edits. For production, restrict access with firewall rules or put the service behind a reverse proxy with HTTPS.
 
 ## systemd
 
@@ -67,7 +59,7 @@ systemctl status yadreno-vpn-web
 ```bash
 install -d -m 700 /etc/yadreno-vpn
 cat > /etc/yadreno-vpn/web.env <<'EOF'
-WEB_HOST=127.0.0.1
+WEB_HOST=0.0.0.0
 WEB_PORT=8080
 WEB_SECRET_KEY=replace-with-long-random-secret
 EOF

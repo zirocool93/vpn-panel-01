@@ -170,7 +170,7 @@ print(secrets.token_urlsafe(48))
 PY
 )"
         cat > "$WEB_ENV_FILE" << EOF
-WEB_HOST=127.0.0.1
+WEB_HOST=0.0.0.0
 WEB_PORT=8080
 WEB_SECRET_KEY=$web_secret
 EOF
