@@ -12,6 +12,13 @@ from web.deps import flash, template_context, templates
 router = APIRouter()
 
 
+@router.get("/")
+async def root(request: Request):
+    if security.get_current_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    return RedirectResponse("/login", status_code=303)
+
+
 @router.get("/login")
 async def login_page(request: Request):
     if security.get_current_admin(request):

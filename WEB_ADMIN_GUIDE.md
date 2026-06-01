@@ -23,6 +23,18 @@ WEB_HOST=127.0.0.1 WEB_PORT=8080 python web_main.py
 
 Откройте `http://127.0.0.1:8080/login` с сервера или через SSH tunnel.
 
+Корневой адрес `/` перенаправляет на `/login`.
+
+Для прямого доступа с другого компьютера в LAN, например `http://10.5.2.57:8080/`, Web-сервис должен слушать внешний интерфейс:
+
+```bash
+sed -i 's/^WEB_HOST=.*/WEB_HOST=0.0.0.0/' /etc/yadreno-vpn/web.env
+systemctl restart yadreno-vpn-web
+systemctl status yadreno-vpn-web
+```
+
+После проверки лучше закрыть порт firewall-ом или поставить reverse proxy с HTTPS.
+
 ## systemd
 
 `install.sh install`, `install.sh update` and `install.sh reset` install and restart both services:
