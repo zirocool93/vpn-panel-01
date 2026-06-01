@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Сеть</h1>
+  <a class="btn btn-outline-secondary" href="/admin/system/diagnostics">Диагностика</a>
+</div>
+<div class="mb-3">
+  <form class="d-inline" method="post" action="/admin/system/check-github"><button class="btn btn-outline-primary">Проверить GitHub</button></form>
+  <form class="d-inline" method="post" action="/admin/system/check-telegram"><button class="btn btn-outline-primary">Проверить Telegram</button></form>
+</div>
+<div class="row g-3">
+  {% for name, result in network.items() %}
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h6">{{ name }}</h2>
+    {% if result is mapping %}
+    <span class="badge text-bg-{{ 'success' if result.ok else 'danger' }}">{{ result.returncode }}</span>
+    <pre class="log-box">{{ result.stdout or result.stderr }}</pre>
+    {% else %}
+    <pre class="log-box">{{ result }}</pre>
+    {% endif %}
+  </div></div></div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Inbounds{% if server %}: {{ server.name }}{% endif %}</h1>
+  {% if server %}<a class="btn btn-outline-secondary" href="/admin/servers/{{ server.id }}/diagnostics">Диагностика</a>{% endif %}
+</div>
+{% if result.status != "ok" %}<div class="alert alert-warning">{{ result.message }}</div>{% endif %}
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>ID</th><th>Remark</th><th>Protocol</th><th>Port</th><th>Status</th><th>Clients</th><th>Network</th></tr></thead>
+    <tbody>
+    {% for inbound in result.inbounds %}
+    <tr>
+      <td><a href="/admin/servers/{{ server.id }}/inbounds/{{ inbound.id }}">{{ inbound.id }}</a></td>
+      <td>{{ inbound.remark }}</td>
+      <td>{{ inbound.protocol }}</td>
+      <td>{{ inbound.port }}</td>
+      <td><span class="badge text-bg-{{ 'success' if inbound.enable else 'secondary' }}">{{ "enabled" if inbound.enable else "disabled" }}</span></td>
+      <td>{{ inbound.active_clients_count }}/{{ inbound.clients_count }}</td>
+      <td>{{ inbound.stream_summary.network or "-" }} {{ inbound.stream_summary.security or "" }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted">Нет данных</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

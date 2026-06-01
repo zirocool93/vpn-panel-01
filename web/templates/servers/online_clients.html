@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Online clients{% if server %}: {{ server.name }}{% endif %}</h1>
+  {% if server %}<a class="btn btn-outline-secondary" href="/admin/servers/{{ server.id }}/diagnostics">Диагностика</a>{% endif %}
+</div>
+<div class="alert alert-{{ 'success' if result.status == 'ok' else 'warning' }}">{{ result.message }}</div>
+<pre class="log-box">{{ result.online_clients|tojson(indent=2) }}</pre>
+{% endblock %}

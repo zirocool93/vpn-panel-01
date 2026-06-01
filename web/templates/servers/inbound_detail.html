@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not inbound %}
+<div class="alert alert-warning">Inbound не найден. {{ result.message }}</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Inbound #{{ inbound.id }}</h1>
+  <a class="btn btn-outline-secondary" href="/admin/servers/{{ server.id }}/inbounds">Назад</a>
+</div>
+<dl class="row">
+  <dt class="col-sm-3">Remark</dt><dd class="col-sm-9">{{ inbound.remark }}</dd>
+  <dt class="col-sm-3">Protocol</dt><dd class="col-sm-9">{{ inbound.protocol }}</dd>
+  <dt class="col-sm-3">Port</dt><dd class="col-sm-9">{{ inbound.port }}</dd>
+  <dt class="col-sm-3">Clients</dt><dd class="col-sm-9">{{ inbound.active_clients_count }}/{{ inbound.clients_count }}</dd>
+  <dt class="col-sm-3">Stream</dt><dd class="col-sm-9">{{ inbound.stream_summary }}</dd>
+</dl>
+<h2 class="h5">Clients</h2>
+<pre class="log-box">{{ inbound.clients|tojson(indent=2) }}</pre>
+<h2 class="h5">Settings</h2>
+<pre class="log-box">{{ inbound.settings|tojson(indent=2) }}</pre>
+<h2 class="h5">Stream settings</h2>
+<pre class="log-box">{{ inbound.streamSettings|tojson(indent=2) }}</pre>
+{% endif %}
+{% endblock %}

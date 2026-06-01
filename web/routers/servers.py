@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Form, Request
 from starlette.responses import RedirectResponse
 
-from services import server_service
+from services import server_diagnostics_service, server_service
 from services.audit_service import log_admin_action
 from web import security
 from web.deps import flash, template_context, templates
@@ -64,6 +64,101 @@ async def server_detail(request: Request, server_id: int):
         "servers/detail.html",
         template_context(request, title="Сервер", server=server_service.get_server(server_id)),
     )
+
+
+@router.get("/{server_id}/diagnostics")
+async def server_diagnostics(request: Request, server_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = await server_diagnostics_service.diagnose_server(server_id)
+    return templates.TemplateResponse(
+        request,
+        "servers/diagnostics.html",
+        template_context(request, title="Диагностика сервера", diagnostics=result),
+    )
+
+
+@router.get("/{server_id}/inbounds")
+async def server_inbounds(request: Request, server_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = await server_diagnostics_service.get_server_inbounds_detailed(server_id)
+    return templates.TemplateResponse(
+        request,
+        "servers/inbounds.html",
+        template_context(request, title="Inbounds", server=server_service.get_server(server_id), result=result),
+    )
+
+
+@router.get("/{server_id}/inbounds/{inbound_id}")
+async def server_inbound_detail(request: Request, server_id: int, inbound_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = await server_diagnostics_service.get_server_inbounds_detailed(server_id)
+    inbound = next((item for item in result.get("inbounds", []) if int(item.get("id") or 0) == inbound_id), None)
+    return templates.TemplateResponse(
+        request,
+        "servers/inbound_detail.html",
+        template_context(
+            request,
+            title="Inbound",
+            server=server_service.get_server(server_id),
+            result=result,
+            inbound=inbound,
+        ),
+    )
+
+
+@router.get("/{server_id}/online-clients")
+async def server_online_clients(request: Request, server_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = await server_diagnostics_service.get_server_online_clients(server_id)
+    return templates.TemplateResponse(
+        request,
+        "servers/online_clients.html",
+        template_context(request, title="Online clients", server=server_service.get_server(server_id), result=result),
+    )
+
+
+@router.post("/{server_id}/check-api-token")
+async def check_server_api_token(request: Request, server_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = await server_diagnostics_service.relogin_server(server_id)
+    admin = security.get_current_admin(request)
+    log_admin_action(admin["admin_user_id"], "server.api_token.check", "server", server_id, {"success": result["success"]}, request)
+    flash(request, result["message"], "success" if result["success"] else "danger")
+    return RedirectResponse(f"/admin/servers/{server_id}/diagnostics", status_code=303)
+
+
+@router.post("/{server_id}/reset-api-token")
+async def reset_server_api_token(request: Request, server_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = server_diagnostics_service.reset_server_api_token(server_id)
+    admin = security.get_current_admin(request)
+    log_admin_action(admin["admin_user_id"], "server.api_token.reset", "server", server_id, {"success": result["success"]}, request)
+    flash(request, result["message"], "success" if result["success"] else "danger")
+    return RedirectResponse(f"/admin/servers/{server_id}/diagnostics", status_code=303)
+
+
+@router.post("/{server_id}/relogin")
+async def relogin_server(request: Request, server_id: int):
+    redirect = security.require_admin(request)
+    if redirect:
+        return redirect
+    result = await server_diagnostics_service.relogin_server(server_id)
+    admin = security.get_current_admin(request)
+    log_admin_action(admin["admin_user_id"], "server.relogin", "server", server_id, {"success": result["success"]}, request)
+    flash(request, result["message"], "success" if result["success"] else "danger")
+    return RedirectResponse(f"/admin/servers/{server_id}/diagnostics", status_code=303)
 
 
 @router.get("/{server_id}/edit")

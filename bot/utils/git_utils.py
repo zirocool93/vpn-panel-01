@@ -11,6 +11,7 @@ import shutil
 from typing import Tuple, Optional, List, Dict
 
 logger = logging.getLogger(__name__)
+_LAST_PENDING_COMMITS_ERROR = ""
 
 
 def get_project_root() -> str:
@@ -132,15 +133,20 @@ def get_pending_commits_list() -> Tuple[bool, List[Dict[str, str]]]:
         от старого к новому (--reverse)
     """
     # Получаем обновления с сервера
+    global _LAST_PENDING_COMMITS_ERROR
+    _LAST_PENDING_COMMITS_ERROR = ""
+
     success, output = run_git_command(['fetch', 'origin'], timeout=60)
     if not success:
         logger.error(f"Ошибка fetch при получении списка коммитов: {output}")
+        _LAST_PENDING_COMMITS_ERROR = output
         return False, []
     
     # Получаем текущую ветку
     branch = get_current_branch()
     if not branch:
         logger.error("Не удалось определить текущую ветку")
+        _LAST_PENDING_COMMITS_ERROR = "Не удалось определить текущую ветку"
         return False, []
     
     # Проверяем, существует ли удаленная ветка
@@ -156,6 +162,7 @@ def get_pending_commits_list() -> Tuple[bool, List[Dict[str, str]]]:
     
     if not success:
         logger.error(f"Ошибка получения списка коммитов: {output}")
+        _LAST_PENDING_COMMITS_ERROR = output
         return False, []
     
     if not output.strip():
@@ -235,7 +242,7 @@ def check_for_updates() -> Tuple[bool, int, str, bool, Optional[Dict[str, str]],
     # Получаем список ожидающих коммитов (внутри делает fetch)
     success, pending_commits = get_pending_commits_list()
     if not success:
-        return False, 0, "Ошибка получения списка коммитов", False, None, False
+        return False, 0, _LAST_PENDING_COMMITS_ERROR or "Ошибка получения списка коммитов", False, None, False
     
     commits_behind = len(pending_commits)
     

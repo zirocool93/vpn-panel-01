@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Диагностика системы</h1>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="/admin/system">Логи</a>
+    <a class="btn btn-outline-primary" href="/admin/system/services">Сервисы</a>
+    <a class="btn btn-outline-primary" href="/admin/system/network">Сеть</a>
+    <a class="btn btn-outline-primary" href="/admin/system/database">База</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h5">Host</h2>
+    <dl class="row mb-0">
+      <dt class="col-sm-4">Hostname</dt><dd class="col-sm-8">{{ diagnostics.system.hostname }}</dd>
+      <dt class="col-sm-4">OS</dt><dd class="col-sm-8">{{ diagnostics.system.os }}</dd>
+      <dt class="col-sm-4">Uptime</dt><dd class="col-sm-8">{{ diagnostics.system.uptime }}</dd>
+      <dt class="col-sm-4">Time</dt><dd class="col-sm-8">{{ diagnostics.system.current_time }}</dd>
+      <dt class="col-sm-4">Project</dt><dd class="col-sm-8">{{ diagnostics.system.project_root }}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h5">Ресурсы</h2>
+    <dl class="row mb-0">
+      <dt class="col-sm-4">CPU</dt><dd class="col-sm-8">{{ diagnostics.resources.cpu_count }}</dd>
+      <dt class="col-sm-4">Disk free</dt><dd class="col-sm-8">{{ diagnostics.resources.disk.free }}</dd>
+      <dt class="col-sm-4">Memory free</dt><dd class="col-sm-8">{{ diagnostics.resources.memory.free }}</dd>
+      <dt class="col-sm-4">Swap free</dt><dd class="col-sm-8">{{ diagnostics.resources.swap.free }}</dd>
+    </dl>
+  </div></div></div>
+</div>
+<h2 class="h5 mt-4">Git</h2>
+<pre class="log-box">{{ diagnostics.git|tojson(indent=2) }}</pre>
+{% endblock %}

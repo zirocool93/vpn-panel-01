@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Сервисы</h1>
+  <a class="btn btn-outline-secondary" href="/admin/system/diagnostics">Диагностика</a>
+</div>
+<div class="mb-3">
+  <form class="d-inline" method="post" action="/admin/system/restart-bot" data-confirm="Перезапустить yadreno-vpn?"><button class="btn btn-outline-danger">Restart bot</button></form>
+  <form class="d-inline" method="post" action="/admin/system/restart-web" data-confirm="Перезапустить yadreno-vpn-web?"><button class="btn btn-outline-danger">Restart web</button></form>
+</div>
+{% for name, service in services.items() %}
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h5">{{ name }} <span class="badge text-bg-{{ 'success' if service.active.ok else 'danger' }}">{{ service.active.stdout or service.active.stderr }}</span></h2>
+  <h3 class="h6">systemctl status</h3>
+  <pre class="log-box">{{ service.status.stdout or service.status.stderr }}</pre>
+  <h3 class="h6">journalctl</h3>
+  <pre class="log-box">{{ service.journal.stdout or service.journal.stderr }}</pre>
+</div></div>
+{% endfor %}
+{% endblock %}

@@ -13,6 +13,25 @@ python -c "from database.migrations import run_migrations; run_migrations(); pri
 python tools/create_web_admin.py
 ```
 
+## Web diagnostics
+
+VPN server diagnostics are available from the server detail page:
+
+- `GET /admin/servers/{server_id}/diagnostics` runs active/TCP/HTTP/login/inbounds/online checks and masks secrets;
+- `GET /admin/servers/{server_id}/inbounds` lists panel inbounds;
+- `GET /admin/servers/{server_id}/inbounds/{inbound_id}` shows masked inbound settings and clients;
+- `GET /admin/servers/{server_id}/online-clients` shows the online clients payload when the 3X-UI API supports it;
+- `POST /admin/servers/{server_id}/check-api-token`, `/reset-api-token`, `/relogin` write admin audit events.
+
+Host diagnostics are available in `/admin/system`:
+
+- `/admin/system/diagnostics` shows host, resource, git, database and log summary;
+- `/admin/system/services` shows `systemctl`/`journalctl` output for `yadreno-vpn` and `yadreno-vpn-web`;
+- `/admin/system/network` checks default route, DNS, GitHub and Telegram HTTPS;
+- `/admin/system/database` runs SQLite integrity and WAL-related checks.
+
+The system page no longer runs `check_for_updates()` on every GET request. Use the explicit `POST /admin/system/check-updates` button so GitHub/network failures are visible and do not slow down normal page loading.
+
 ## Ручной запуск
 
 ```bash

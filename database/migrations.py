@@ -34,7 +34,7 @@ def _add_column(conn: sqlite3.Connection, table: str, column_def: str) -> None:
 INITIAL_VERSION = 21
 
 # Текущая версия схемы БД (инкрементируется при добавлении новых миграций)
-LATEST_VERSION = 35
+LATEST_VERSION = 36
 
 
 def _my_keys_item_template() -> str:
@@ -1265,6 +1265,27 @@ def migration_35(conn):
 
     logger.info("Миграция v35 применена: добавлены таблицы и настройки Web-админки")
 
+def migration_36(conn):
+    """Migration v36: diagnostic event log for VPN servers."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS server_diagnostic_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            check_name TEXT,
+            message TEXT,
+            details TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(server_id) REFERENCES servers(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_server_diagnostic_log_server_id ON server_diagnostic_log(server_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_server_diagnostic_log_created_at ON server_diagnostic_log(created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_server_diagnostic_log_status ON server_diagnostic_log(status)")
+    logger.info("Migration v36 applied: server_diagnostic_log added")
+
 
 MIGRATIONS = {
     22: migration_22,
@@ -1281,6 +1302,7 @@ MIGRATIONS = {
     33: migration_33,
     34: migration_34,
     35: migration_35,
+    36: migration_36,
 }
 
 
