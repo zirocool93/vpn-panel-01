@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not key %}
+<div class="alert alert-warning">Ключ не найден</div>
+{% else %}
+<h1 class="h3">Ссылки ключа #{{ key.id }}</h1>
+{% if result.subscription_url %}
+<h2 class="h5">Subscription URL</h2>
+<textarea class="form-control mb-3" rows="3" readonly>{{ result.subscription_url }}</textarea>
+{% endif %}
+{% if result.client_link %}
+<h2 class="h5">Client link</h2>
+<textarea class="form-control mb-3" rows="4" readonly>{{ result.client_link }}</textarea>
+{% endif %}
+{% if result.subscription_url or result.client_link %}
+<img class="border p-2 bg-white mb-3" src="/admin/keys/{{ key.id }}/qr.png" alt="QR">
+{% else %}
+<div class="alert alert-warning">Ссылка недоступна, ключ ещё не синхронизирован с панелью или subscription отключена.</div>
+{% endif %}
+<div><a class="btn btn-outline-secondary" href="/admin/keys/{{ key.id }}">Назад к ключу</a></div>
+{% endif %}
+{% endblock %}

@@ -1,19 +1,82 @@
 {% extends "base.html" %}
 {% block content %}
-{% if not user %}<div class="alert alert-warning">Пользователь не найден</div>{% else %}
+{% if not user %}
+<div class="alert alert-warning">Пользователь не найден</div>
+{% else %}
 <h1 class="h3">Пользователь {{ user.telegram_id }}</h1>
-<dl class="row"><dt class="col-sm-3">Username</dt><dd class="col-sm-9">{{ user.username or "" }}</dd><dt class="col-sm-3">Баланс</dt><dd class="col-sm-9">{{ user.personal_balance }}</dd><dt class="col-sm-3">Бан</dt><dd class="col-sm-9">{{ "да" if user.is_banned else "нет" }}</dd></dl>
+<dl class="row">
+  <dt class="col-sm-3">Username</dt><dd class="col-sm-9">{{ user.username or "" }}</dd>
+  <dt class="col-sm-3">Баланс</dt><dd class="col-sm-9">{{ user.personal_balance }}</dd>
+  <dt class="col-sm-3">Бан</dt><dd class="col-sm-9">{{ "да" if user.is_banned else "нет" }}</dd>
+</dl>
 <form class="d-inline" method="post" action="/admin/users/{{ user.id }}/ban" data-confirm="Заблокировать пользователя?"><button class="btn btn-warning">Бан</button></form>
 <form class="d-inline" method="post" action="/admin/users/{{ user.id }}/unban"><button class="btn btn-outline-success">Разбан</button></form>
+
 <form method="post" action="/admin/users/{{ user.id }}/balance" class="row g-2 mt-3">
   <div class="col-md-3"><input class="form-control" name="amount_delta_cents" type="number" placeholder="дельта в копейках" required></div>
   <div class="col-md-5"><input class="form-control" name="reason" placeholder="причина изменения" required></div>
   <div class="col"><button class="btn btn-primary">Изменить баланс</button></div>
 </form>
+
+<h2 class="h5 mt-4">Назначить тариф</h2>
+<form method="post" action="/admin/users/{{ user.id }}/assign-tariff" class="row g-2 align-items-end">
+  <div class="col-md-3">
+    <label class="form-label">Тариф</label>
+    <select class="form-select" name="tariff_id" required>
+      {% for tariff in options.tariffs %}
+      <option value="{{ tariff.id }}">{{ tariff.name }} ({{ tariff.duration_days }} дн.)</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">Действие</label>
+    <select class="form-select" name="action">
+      <option value="create_key">Создать новый ключ</option>
+      <option value="extend_key">Продлить выбранный ключ</option>
+      <option value="change_key_tariff">Изменить тариф ключа</option>
+      <option value="create_db_only">Создать запись без панели</option>
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">Ключ</label>
+    <select class="form-select" name="key_id">
+      <option value="">-</option>
+      {% for k in keys %}
+      <option value="{{ k.id }}">#{{ k.id }} {{ k.panel_email or "" }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">Сервер</label>
+    <select class="form-select" name="server_id">
+      <option value="">Авто</option>
+      {% for server in options.servers %}
+      <option value="{{ server.id }}">{{ server.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-2"><input class="form-control" name="custom_name" placeholder="название"></div>
+  <div class="col-12"><button class="btn btn-primary">Применить</button></div>
+</form>
+
 <h2 class="h5 mt-4">Ключи</h2>
-<table class="table table-sm"><tr><th>ID</th><th>Email</th><th>Истекает</th></tr>{% for k in keys %}<tr><td><a href="/admin/keys/{{ k.id }}">{{ k.id }}</a></td><td>{{ k.panel_email }}</td><td>{{ k.expires_at }}</td></tr>{% endfor %}</table>
+<table class="table table-sm">
+  <tr><th>ID</th><th>Email</th><th>Тариф</th><th>Истекает</th><th></th></tr>
+  {% for k in keys %}
+  <tr>
+    <td><a href="/admin/keys/{{ k.id }}">{{ k.id }}</a></td>
+    <td>{{ k.panel_email or "не настроен" }}</td>
+    <td>{{ k.tariff_name or "-" }}</td>
+    <td>{{ k.expires_at }}</td>
+    <td>
+      <a class="btn btn-sm btn-outline-secondary" href="/admin/keys/{{ k.id }}/links">Ссылки</a>
+      <a class="btn btn-sm btn-outline-primary" href="/admin/keys/{{ k.id }}/edit-tariff">Тариф</a>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
 <h2 class="h5 mt-4">Платежи</h2>
 <table class="table table-sm"><tr><th>ID</th><th>Тип</th><th>Статус</th><th>Дата</th></tr>{% for p in payments %}<tr><td>{{ p.id }}</td><td>{{ p.payment_type }}</td><td>{{ p.status }}</td><td>{{ p.paid_at }}</td></tr>{% endfor %}</table>
 {% endif %}
 {% endblock %}
-

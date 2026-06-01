@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not key %}
+<div class="alert alert-warning">Ключ не найден</div>
+{% else %}
+<h1 class="h3">Удалить ключ #{{ key.id }}</h1>
+<p>Будет удалена запись ключа из БД. История платежей сохранится без привязки к ключу.</p>
+<dl class="row">
+  <dt class="col-sm-3">Пользователь</dt><dd class="col-sm-9">{{ key.username or key.telegram_id }}</dd>
+  <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ key.panel_email or "-" }}</dd>
+  <dt class="col-sm-3">Сервер</dt><dd class="col-sm-9">{{ key.server_name or "-" }}</dd>
+</dl>
+<form method="post" action="/admin/keys/{{ key.id }}/delete">
+  <button class="btn btn-danger">Удалить</button>
+  <a class="btn btn-outline-secondary" href="/admin/keys/{{ key.id }}">Отмена</a>
+</form>
+{% endif %}
+{% endblock %}

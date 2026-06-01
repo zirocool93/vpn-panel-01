@@ -1,12 +1,59 @@
 {% extends "base.html" %}
 {% block content %}
-{% if not key %}<div class="alert alert-warning">Ключ не найден</div>{% else %}
-<h1 class="h3">Ключ #{{ key.id }}</h1>
-<dl class="row"><dt class="col-sm-3">Пользователь</dt><dd class="col-sm-9">{{ key.username or key.telegram_id }}</dd><dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ key.panel_email }}</dd><dt class="col-sm-3">UUID</dt><dd class="col-sm-9">{{ key.client_uuid }}</dd><dt class="col-sm-3">Истекает</dt><dd class="col-sm-9">{{ key.expires_at }}</dd><dt class="col-sm-3">Трафик</dt><dd class="col-sm-9">{{ key.traffic_used }} / {{ key.traffic_limit }}</dd></dl>
-<form method="post" action="/admin/keys/{{ key.id }}/extend" class="row g-2 mb-3"><div class="col-md-3"><input class="form-control" name="days" type="number" placeholder="дней" required></div><div class="col"><button class="btn btn-primary">Продлить</button></div></form>
-<form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/reset-traffic" data-confirm="Сбросить трафик?"><button class="btn btn-warning">Сбросить трафик</button></form>
-<form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/sync"><button class="btn btn-outline-primary">Синхронизировать</button></form>
-<form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/delete" data-confirm="Удалить ключ?"><button class="btn btn-danger">Удалить</button></form>
+{% if not key %}
+<div class="alert alert-warning">Ключ не найден</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Ключ #{{ key.id }}</h1>
+  <div class="btn-group">
+    <a class="btn btn-outline-secondary" href="/admin/keys/{{ key.id }}/links">Ссылки/QR</a>
+    <a class="btn btn-outline-primary" href="/admin/keys/{{ key.id }}/edit-tariff">Изменить тариф</a>
+    <a class="btn btn-outline-danger" href="/admin/keys/{{ key.id }}/confirm-delete">Удалить</a>
+  </div>
+</div>
+
+<dl class="row">
+  <dt class="col-sm-3">Пользователь</dt><dd class="col-sm-9"><a href="/admin/users/{{ key.user_id }}">{{ key.username or key.telegram_id }}</a></dd>
+  <dt class="col-sm-3">Тариф</dt><dd class="col-sm-9">{{ key.tariff_name or "-" }}</dd>
+  <dt class="col-sm-3">Сервер</dt><dd class="col-sm-9">{{ key.server_name or "-" }} {% if key.host %}<span class="text-muted">{{ key.host }}</span>{% endif %}</dd>
+  <dt class="col-sm-3">Inbound</dt><dd class="col-sm-9">{{ key.panel_inbound_id or "-" }}</dd>
+  <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ key.panel_email or "-" }}</dd>
+  <dt class="col-sm-3">UUID/password</dt><dd class="col-sm-9"><code>{{ key.client_uuid or "-" }}</code></dd>
+  <dt class="col-sm-3">Sub ID</dt><dd class="col-sm-9"><code>{{ key.sub_id or "-" }}</code></dd>
+  <dt class="col-sm-3">Истекает</dt><dd class="col-sm-9">{{ key.expires_at }}</dd>
+  <dt class="col-sm-3">Трафик</dt><dd class="col-sm-9">{{ key.traffic_used or 0 }} / {{ key.traffic_limit or 0 }}</dd>
+  <dt class="col-sm-3">Max IP</dt><dd class="col-sm-9">{{ key.max_ips or "-" }}</dd>
+  <dt class="col-sm-3">Создан</dt><dd class="col-sm-9">{{ key.created_at }}</dd>
+</dl>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <form method="post" action="/admin/keys/{{ key.id }}/extend" class="row g-2">
+      <div class="col-md-5"><input class="form-control" name="days" type="number" min="1" placeholder="дней" required></div>
+      <div class="col"><button class="btn btn-primary">Продлить вручную</button></div>
+    </form>
+  </div>
+  <div class="col-lg-6">
+    <form method="post" action="/admin/keys/{{ key.id }}/extend-by-tariff" class="row g-2">
+      <div class="col-md-5">
+        <select class="form-select" name="tariff_id" required>
+          {% for tariff in options.tariffs %}
+          <option value="{{ tariff.id }}" {% if tariff.id == key.tariff_id %}selected{% endif %}>{{ tariff.name }} ({{ tariff.duration_days }} дн.)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 form-check pt-2">
+        <input class="form-check-input" type="checkbox" name="update_tariff" value="1" id="update_tariff">
+        <label class="form-check-label" for="update_tariff">сменить тариф</label>
+      </div>
+      <div class="col"><button class="btn btn-outline-primary">Продлить по тарифу</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="mt-3">
+  <form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/reset-traffic" data-confirm="Сбросить трафик?"><button class="btn btn-warning">Сбросить трафик</button></form>
+  <form class="d-inline" method="post" action="/admin/keys/{{ key.id }}/sync"><button class="btn btn-outline-primary">Синхронизировать</button></form>
+</div>
 {% endif %}
 {% endblock %}
-

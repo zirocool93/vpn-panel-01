@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not key %}
+<div class="alert alert-warning">Ключ не найден</div>
+{% else %}
+<h1 class="h3">Изменить тариф ключа #{{ key.id }}</h1>
+<form method="post" action="/admin/keys/{{ key.id }}/edit-tariff" class="vstack gap-3">
+  <div>
+    <label class="form-label">Тариф</label>
+    <select class="form-select" name="tariff_id" required>
+      {% for tariff in options.tariffs %}
+      <option value="{{ tariff.id }}" {% if tariff.id == key.tariff_id %}selected{% endif %}>{{ tariff.name }} — {{ tariff.duration_days }} дн.</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="apply_limits" value="1" id="apply_limits" checked>
+    <label class="form-check-label" for="apply_limits">Обновить лимит трафика по тарифу</label>
+  </div>
+  <div>
+    <button class="btn btn-primary">Сохранить</button>
+    <a class="btn btn-outline-secondary" href="/admin/keys/{{ key.id }}">Отмена</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
