@@ -32,6 +32,41 @@ Host diagnostics are available in `/admin/system`:
 
 The system page no longer runs `check_for_updates()` on every GET request. Use the explicit `POST /admin/system/check-updates` button so GitHub/network failures are visible and do not slow down normal page loading.
 
+## Web Security Pack
+
+The Web admin uses per-session CSRF tokens. Every rendered template receives `csrf_token`, and `base.html` adds it to POST forms before submit. POST requests without a valid token are rejected before route handlers run and are written to `admin_audit_log` as `security.csrf_failed`.
+
+Admin roles use the existing `admin_users.role` field. Supported roles are `owner`, `admin`, `support`, `finance`, `content` and `readonly`. Menu items are hidden when the current role does not have the matching permission, and protected routes write `security.permission_denied` to audit.
+
+Login attempts are stored in `admin_login_attempts`. Five failed attempts for the same username and IP in 15 minutes trigger a 15-minute rate limit. Failed and rate-limited logins are also written to audit.
+
+Cookies are controlled by:
+
+- `WEB_COOKIE_SECURE=1` for HTTPS deployments;
+- `WEB_COOKIE_SAMESITE=lax|strict|none`.
+
+For reverse proxy HTTPS, set `WEB_COOKIE_SECURE=1` in `/etc/yadreno-vpn/web.env`. Do not expose the panel directly to the internet without HTTPS and firewall/reverse-proxy restrictions.
+
+Dangerous Web actions require a typed confirmation code in addition to CSRF: `DELETE`, `RESET`, `RESTART`, `CLEAR`, `RESTORE` or `VACUUM`.
+
+## Web backups
+
+Backups are available at `/admin/system/backups`. A backup is a `.tar.gz` archive in `backups/` containing a consistent SQLite copy created through `sqlite3.Connection.backup()` and `metadata.json`. `config.py` and `/etc/yadreno-vpn/web.env` are not included by default because they may contain secrets.
+
+From Web you can create, download, verify, delete and restore backups, run SQLite integrity checks and run VACUUM. Restore requires the `RESTORE` confirmation and creates a pre-restore backup by default. After restore, restart both services.
+
+Emergency CLI restore example:
+
+```bash
+systemctl stop yadreno-vpn yadreno-vpn-web
+cd /root/vpn-panel-01
+tar -tzf backups/<file>.tar.gz
+tar -xzf backups/<file>.tar.gz database/vpn_bot.sqlite
+cp database/vpn_bot.sqlite database/vpn_bot.db
+rm -f database/vpn_bot.db-wal database/vpn_bot.db-shm
+systemctl start yadreno-vpn yadreno-vpn-web
+```
+
 ## Ручной запуск
 
 ```bash

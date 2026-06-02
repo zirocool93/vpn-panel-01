@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Restore backup</h1>
+  <a class="btn btn-outline-secondary" href="/admin/system/backups">Назад</a>
+</div>
+<div class="alert alert-danger">
+  Restore заменит текущую SQLite базу. Перед восстановлением будет создан pre-restore backup, после восстановления нужно перезапустить bot и Web.
+</div>
+{% if not verification.success %}
+<div class="alert alert-warning">{{ verification.message }}</div>
+{% else %}
+<h2 class="h5">Metadata</h2>
+<pre class="log-box">{{ verification.metadata|tojson(indent=2) }}</pre>
+<h2 class="h5">Integrity</h2>
+<pre class="log-box">{{ verification.integrity|tojson(indent=2) }}</pre>
+<form method="post" action="/admin/system/backups/{{ filename }}/restore" data-confirm-code="RESTORE" class="vstack gap-3">
+  <div class="form-check">
+    <input class="form-check-input" type="checkbox" name="make_pre_restore_backup" value="1" id="pre_restore" checked>
+    <label class="form-check-label" for="pre_restore">Создать pre-restore backup</label>
+  </div>
+  <div><button class="btn btn-danger">Восстановить backup</button></div>
+</form>
+{% endif %}
+{% endblock %}

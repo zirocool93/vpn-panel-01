@@ -7,6 +7,7 @@
     <a class="btn btn-outline-primary" href="/admin/system/services">Сервисы</a>
     <a class="btn btn-outline-primary" href="/admin/system/network">Сеть</a>
     <a class="btn btn-outline-primary" href="/admin/system/database">База</a>
+    {% if can("system.backups") %}<a class="btn btn-outline-primary" href="/admin/system/backups">Бэкапы</a>{% endif %}
   </div>
 </div>
 <dl class="row">
@@ -15,7 +16,7 @@
 </dl>
 <form class="d-inline" method="post" action="/admin/system/check-updates"><button class="btn btn-outline-primary">Проверить обновления</button></form>
 <a class="btn btn-outline-primary" href="/admin/system/download-log">Скачать bot.log</a>
-<form class="d-inline" method="post" action="/admin/system/clear-log" data-confirm="Очистить bot.log?"><button class="btn btn-outline-danger">Очистить bot.log</button></form>
+<form class="d-inline" method="post" action="/admin/system/clear-log" data-confirm="Очистить bot.log?" data-confirm-code="CLEAR"><button class="btn btn-outline-danger">Очистить bot.log</button></form>
 <h2 class="h5 mt-4">Последние строки bot.log</h2>
 <pre class="log-box">{{ log_tail }}</pre>
 {% endblock %}

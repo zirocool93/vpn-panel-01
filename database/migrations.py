@@ -34,7 +34,7 @@ def _add_column(conn: sqlite3.Connection, table: str, column_def: str) -> None:
 INITIAL_VERSION = 21
 
 # Текущая версия схемы БД (инкрементируется при добавлении новых миграций)
-LATEST_VERSION = 36
+LATEST_VERSION = 38
 
 
 def _my_keys_item_template() -> str:
@@ -1287,6 +1287,57 @@ def migration_36(conn):
     logger.info("Migration v36 applied: server_diagnostic_log added")
 
 
+def migration_37(conn):
+    """Migration v37: Web login attempts and security settings."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin_login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            success INTEGER NOT NULL DEFAULT 0,
+            failure_reason TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_username ON admin_login_attempts(username)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_ip_address ON admin_login_attempts(ip_address)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_created_at ON admin_login_attempts(created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_success ON admin_login_attempts(success)")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('web_cookie_secure', '0')")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('web_cookie_samesite', 'lax')")
+    logger.info("Migration v37 applied: admin_login_attempts added")
+
+
+def migration_38(conn):
+    """Migration v38: Web backup log and backup defaults."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS backup_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_user_id INTEGER,
+            action TEXT NOT NULL,
+            filename TEXT,
+            success INTEGER NOT NULL DEFAULT 0,
+            size_bytes INTEGER,
+            sha256 TEXT,
+            details TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(admin_user_id) REFERENCES admin_users(id)
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_backup_log_created_at ON backup_log(created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_backup_log_action ON backup_log(action)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_backup_log_filename ON backup_log(filename)")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_retention_count', '10')")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_include_logs_default', '0')")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('backup_dir', 'backups')")
+    logger.info("Migration v38 applied: backup_log added")
+
+
 MIGRATIONS = {
     22: migration_22,
     23: migration_23,
@@ -1303,6 +1354,8 @@ MIGRATIONS = {
     34: migration_34,
     35: migration_35,
     36: migration_36,
+    37: migration_37,
+    38: migration_38,
 }
 
 

@@ -22,6 +22,6 @@
 <form class="d-inline" method="post" action="/admin/servers/{{ server.id }}/test"><button class="btn btn-primary">Проверить подключение</button></form>
 <a class="btn btn-outline-primary" href="/admin/servers/{{ server.id }}/inbounds">Inbounds</a>
 <a class="btn btn-outline-primary" href="/admin/servers/{{ server.id }}/online-clients">Online clients</a>
-<form class="d-inline" method="post" action="/admin/servers/{{ server.id }}/delete" data-confirm="Удалить сервер?"><button class="btn btn-danger">Удалить</button></form>
+<form class="d-inline" method="post" action="/admin/servers/{{ server.id }}/delete" data-confirm="Удалить сервер?" data-confirm-code="DELETE"><button class="btn btn-danger">Удалить</button></form>
 {% endif %}
 {% endblock %}

@@ -10,7 +10,7 @@
   <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ key.panel_email or "-" }}</dd>
   <dt class="col-sm-3">Сервер</dt><dd class="col-sm-9">{{ key.server_name or "-" }}</dd>
 </dl>
-<form method="post" action="/admin/keys/{{ key.id }}/delete">
+<form method="post" action="/admin/keys/{{ key.id }}/delete" data-confirm-code="DELETE">
   <button class="btn btn-danger">Удалить</button>
   <a class="btn btn-outline-secondary" href="/admin/keys/{{ key.id }}">Отмена</a>
 </form>

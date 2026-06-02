@@ -7,15 +7,13 @@ import socket
 import time
 from datetime import datetime
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 import aiohttp
 
 from database import db_servers
 from database.connection import get_db
-
-
-SENSITIVE_KEYS = {"password", "pass", "secret", "token", "api_token", "privatekey", "private_key", "key", "credentials"}
+from services.security_utils import mask_secret as _mask_secret
+from services.security_utils import mask_sensitive_dict
 
 
 def _vpn_api():
@@ -25,27 +23,11 @@ def _vpn_api():
 
 
 def mask_secret(value: Optional[str]) -> str:
-    if not value:
-        return ""
-    text = str(value)
-    if len(text) <= 8:
-        return "******"
-    return f"{text[:4]}******{text[-4:]}"
+    return _mask_secret(value)
 
 
 def mask_sensitive_panel_data(data: Any) -> Any:
-    if isinstance(data, dict):
-        masked = {}
-        for key, value in data.items():
-            key_l = str(key).lower()
-            if any(part in key_l for part in SENSITIVE_KEYS):
-                masked[key] = mask_secret(str(value)) if value else value
-            else:
-                masked[key] = mask_sensitive_panel_data(value)
-        return masked
-    if isinstance(data, list):
-        return [mask_sensitive_panel_data(item) for item in data]
-    return data
+    return mask_sensitive_dict(data)
 
 
 def _check(name: str, label: str, status: str, message: str, start: float, details: Optional[dict[str, Any]] = None) -> dict[str, Any]:

@@ -5,6 +5,7 @@ import json
 from typing import Any, Optional
 
 from database.connection import get_db
+from services.security_utils import mask_sensitive_dict
 
 
 def _request_meta(request: Any) -> tuple[Optional[str], Optional[str]]:
@@ -22,7 +23,7 @@ def _details_to_text(details: Any) -> Optional[str]:
         return None
     if isinstance(details, str):
         return details
-    return json.dumps(details, ensure_ascii=False, default=str)
+    return json.dumps(mask_sensitive_dict(details), ensure_ascii=False, default=str)
 
 
 def log_admin_action(
@@ -75,4 +76,3 @@ def get_audit_log(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
             (safe_limit, safe_offset),
         )
         return [dict(row) for row in cursor.fetchall()]
-

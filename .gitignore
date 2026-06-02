@@ -20,7 +20,9 @@ database/vpn_bot.db
 database/vpn_bot.db-*
 
 # Локальные бэкапы (создаются автоматически планировщиком)
-backup/
+/backup/
+/backups/
+*.tar.gz
 
 # Virtual Environment
 venv/

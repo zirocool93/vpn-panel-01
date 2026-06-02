@@ -60,6 +60,52 @@ def verify_admin_credentials(username: str, password: str) -> Optional[dict[str,
     return user
 
 
+def log_login_attempt(
+    username: str,
+    ip_address: Optional[str],
+    user_agent: Optional[str],
+    success: bool,
+    failure_reason: Optional[str] = None,
+) -> None:
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO admin_login_attempts (username, ip_address, user_agent, success, failure_reason)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            ((username or "").strip(), ip_address, user_agent, 1 if success else 0, failure_reason),
+        )
+
+
+def count_recent_failed_attempts(username: str, ip_address: Optional[str], minutes: int = 15) -> int:
+    since = datetime.utcnow() - timedelta(minutes=max(1, int(minutes)))
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM admin_login_attempts
+            WHERE success = 0
+              AND lower(username) = lower(?)
+              AND COALESCE(ip_address, '') = COALESCE(?, '')
+              AND created_at >= ?
+            """,
+            ((username or "").strip(), ip_address, since.strftime("%Y-%m-%d %H:%M:%S")),
+        ).fetchone()
+        return int(row["count"] if row else 0)
+
+
+def is_login_rate_limited(username: str, ip_address: Optional[str]) -> dict[str, Any]:
+    window_minutes = 15
+    max_attempts = 5
+    attempts = count_recent_failed_attempts(username, ip_address, window_minutes)
+    return {
+        "limited": attempts >= max_attempts,
+        "attempts": attempts,
+        "max_attempts": max_attempts,
+        "window_minutes": window_minutes,
+    }
+
+
 def get_admin_user_by_id(user_id: int) -> Optional[dict[str, Any]]:
     with get_db() as conn:
         row = conn.execute("SELECT * FROM admin_users WHERE id = ?", (user_id,)).fetchone()

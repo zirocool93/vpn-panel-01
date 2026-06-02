@@ -28,11 +28,13 @@ def flash(request: Request, message: str, category: str = "success") -> None:
 
 
 def template_context(request: Request, **extra: Any) -> dict[str, Any]:
+    admin = security.get_current_admin(request)
     context = {
         "request": request,
-        "admin": security.get_current_admin(request),
+        "admin": admin,
+        "csrf_token": security.get_or_create_csrf_token(request),
+        "can": lambda permission: security.has_permission(admin, permission),
         "flashes": pop_flashes(request),
     }
     context.update(extra)
     return context
-

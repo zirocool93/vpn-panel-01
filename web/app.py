@@ -10,7 +10,8 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from database.migrations import run_migrations
 from web import security
-from web.routers import audit, auth, dashboard, keys, pages, payments, servers, settings, system, tariffs, users
+from web.middleware.security import WebSecurityMiddleware
+from web.routers import audit, auth, backups, dashboard, keys, pages, payments, servers, settings, system, tariffs, users
 
 
 logger = logging.getLogger(__name__)
@@ -19,11 +20,12 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     run_migrations()
     app = FastAPI(title="Yadreno VPN Web Admin")
+    app.add_middleware(WebSecurityMiddleware)
     app.add_middleware(
         SessionMiddleware,
         secret_key=security.get_secret_key(),
-        https_only=False,
-        same_site="lax",
+        https_only=security.get_cookie_secure(),
+        same_site=security.get_cookie_samesite(),
     )
 
     static_dir = Path(__file__).resolve().parent / "static"
@@ -39,5 +41,6 @@ def create_app() -> FastAPI:
     app.include_router(payments.router)
     app.include_router(settings.router)
     app.include_router(system.router)
+    app.include_router(backups.router)
     app.include_router(audit.router)
     return app

@@ -5,8 +5,8 @@
   <a class="btn btn-outline-secondary" href="/admin/system/diagnostics">Диагностика</a>
 </div>
 <div class="mb-3">
-  <form class="d-inline" method="post" action="/admin/system/restart-bot" data-confirm="Перезапустить yadreno-vpn?"><button class="btn btn-outline-danger">Restart bot</button></form>
-  <form class="d-inline" method="post" action="/admin/system/restart-web" data-confirm="Перезапустить yadreno-vpn-web?"><button class="btn btn-outline-danger">Restart web</button></form>
+  <form class="d-inline" method="post" action="/admin/system/restart-bot" data-confirm="Перезапустить yadreno-vpn?" data-confirm-code="RESTART"><button class="btn btn-outline-danger">Restart bot</button></form>
+  <form class="d-inline" method="post" action="/admin/system/restart-web" data-confirm="Перезапустить yadreno-vpn-web?" data-confirm-code="RESTART"><button class="btn btn-outline-danger">Restart web</button></form>
 </div>
 {% for name, service in services.items() %}
 <div class="card mb-3"><div class="card-body">

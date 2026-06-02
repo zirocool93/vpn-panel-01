@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Бэкапы</h1>
+  <a class="btn btn-outline-secondary" href="/admin/system">Система</a>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">База данных</h2>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Integrity</dt><dd class="col-sm-8">{{ integrity.integrity_check }}</dd>
+        <dt class="col-sm-4">Journal</dt><dd class="col-sm-8">{{ integrity.journal_mode }}</dd>
+        <dt class="col-sm-4">FK errors</dt><dd class="col-sm-8">{{ integrity.foreign_key_check|length }}</dd>
+      </dl>
+      <div class="table-responsive mt-2">
+        <table class="table table-sm mb-0"><thead><tr><th>File</th><th>Exists</th><th>Size</th></tr></thead><tbody>
+          {% for file in integrity.files %}
+          <tr><td>{{ file.name }}</td><td>{{ file.exists }}</td><td>{{ file.size }}</td></tr>
+          {% endfor %}
+        </tbody></table>
+      </div>
+    </div></div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Создать backup</h2>
+      <form method="post" action="/admin/system/backups/create" class="row g-2">
+        <div class="col-md-8"><input class="form-control" name="note" maxlength="500" placeholder="Заметка"></div>
+        <div class="col-md-4 form-check pt-2"><input class="form-check-input" type="checkbox" name="include_logs" value="1" id="include_logs"><label class="form-check-label" for="include_logs">Включить логи</label></div>
+        <div class="col-12"><button class="btn btn-primary">Создать backup</button></div>
+      </form>
+      <div class="mt-3">
+        <form class="d-inline" method="post" action="/admin/system/backups/integrity-check"><button class="btn btn-outline-primary">Integrity check</button></form>
+        <form class="d-inline" method="post" action="/admin/system/backups/vacuum" data-confirm-code="VACUUM"><button class="btn btn-outline-danger">VACUUM</button></form>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<h2 class="h5">Файлы backup</h2>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>Filename</th><th>Created</th><th>Size</th><th>SHA256</th><th>Commit</th><th>Schema</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+    {% for backup in backups %}
+    <tr>
+      <td>{{ backup.filename }}</td>
+      <td>{{ backup.created_at }}</td>
+      <td>{{ backup.size }}</td>
+      <td><code>{{ backup.sha256[:12] }}</code></td>
+      <td>{{ backup.git_commit or "-" }}</td>
+      <td>{{ backup.schema_version or "-" }}</td>
+      <td>{{ backup.note or "" }}</td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-primary" href="/admin/system/backups/{{ backup.filename }}/download">Download</a>
+        <form class="d-inline" method="post" action="/admin/system/backups/{{ backup.filename }}/verify"><button class="btn btn-sm btn-outline-secondary">Verify</button></form>
+        <a class="btn btn-sm btn-outline-danger" href="/admin/system/backups/{{ backup.filename }}/restore">Restore</a>
+        <form class="d-inline" method="post" action="/admin/system/backups/{{ backup.filename }}/delete" data-confirm-code="DELETE"><button class="btn btn-sm btn-outline-danger">Delete</button></form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="text-muted">Backup-файлов пока нет</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="h5 mt-4">Журнал backup</h2>
+<div class="table-responsive">
+  <table class="table table-sm"><thead><tr><th>Time</th><th>Action</th><th>File</th><th>Success</th><th>Size</th></tr></thead><tbody>
+    {% for event in backup_log %}
+    <tr><td>{{ event.created_at }}</td><td>{{ event.action }}</td><td>{{ event.filename or "" }}</td><td>{{ event.success }}</td><td>{{ event.size_bytes or "" }}</td></tr>
+    {% else %}
+    <tr><td colspan="5" class="text-muted">Журнал пуст</td></tr>
+    {% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

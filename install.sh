@@ -24,6 +24,7 @@ WEB_SERVICE_FILE="yadreno-vpn-web.service"
 WEB_ENV_DIR="/etc/yadreno-vpn"
 WEB_ENV_FILE="$WEB_ENV_DIR/web.env"
 BOT_DB_RELATIVE_PATH="database/vpn_bot.db"
+BACKUP_DIR="$INSTALL_DIR/backups"
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -173,6 +174,8 @@ PY
 WEB_HOST=0.0.0.0
 WEB_PORT=8080
 WEB_SECRET_KEY=$web_secret
+WEB_COOKIE_SECURE=0
+WEB_COOKIE_SAMESITE=lax
 EOF
         chmod 600 "$WEB_ENV_FILE"
         print_ok "Web env created: $WEB_ENV_FILE"
@@ -180,6 +183,12 @@ EOF
         chmod 600 "$WEB_ENV_FILE"
         print_ok "Web env preserved: $WEB_ENV_FILE"
     fi
+}
+
+setup_backup_dir() {
+    mkdir -p "$BACKUP_DIR"
+    chmod 700 "$BACKUP_DIR"
+    print_ok "Backup directory ready: $BACKUP_DIR"
 }
 
 run_database_migrations() {
@@ -295,6 +304,7 @@ WantedBy=multi-user.target
 EOF
 
     setup_web_env
+    setup_backup_dir
     cp "$INSTALL_DIR/$SERVICE_FILE" /etc/systemd/system/
     cp "$INSTALL_DIR/$WEB_SERVICE_FILE" /etc/systemd/system/
     systemctl daemon-reload
