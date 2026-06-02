@@ -22,6 +22,9 @@ CONFIRM_RULES = [
     ("/admin/system/backups/*/restore", "RESTORE"),
     ("/admin/system/backups/*/delete", "DELETE"),
     ("/admin/system/backups/vacuum", "VACUUM"),
+    ("/admin/admin-users/*/password", "RESET"),
+    ("/admin/admin-users/*/disable", "DISABLE"),
+    ("/admin/admin-users/*/revoke-sessions", "REVOKE"),
 ]
 
 

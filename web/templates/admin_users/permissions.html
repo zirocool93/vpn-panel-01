@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not target %}
+<div class="alert alert-warning">Web админ не найден</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Права: {{ target.username }}</h1>
+  <a class="btn btn-outline-secondary" href="/admin/admin-users/{{ target.id }}">Назад</a>
+</div>
+<form method="post">
+  {% for group, permissions in grouped_permissions.items() %}
+  <h2 class="h5 mt-3">{{ group }}</h2>
+  <div class="table-responsive"><table class="table table-sm align-middle">
+    <thead><tr><th>Permission</th><th>Role</th><th>Override</th><th>Effective</th></tr></thead>
+    <tbody>
+    {% for p in permissions %}
+    <tr>
+      <td><code>{{ p.key }}</code><br><span class="text-muted">{{ p.label }}</span></td>
+      <td>{{ "yes" if p.key in role_permissions else "no" }}</td>
+      <td>
+        <select class="form-select form-select-sm" name="override__{{ p.key }}">
+          <option value="" {% if not overrides.get(p.key) %}selected{% endif %}>inherit</option>
+          <option value="allow" {% if overrides.get(p.key) == "allow" %}selected{% endif %}>allow</option>
+          <option value="deny" {% if overrides.get(p.key) == "deny" %}selected{% endif %}>deny</option>
+        </select>
+      </td>
+      <td><span class="badge text-bg-{{ 'success' if p.key in effective_permissions else 'secondary' }}">{{ "yes" if p.key in effective_permissions else "no" }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endfor %}
+  <button class="btn btn-primary">Сохранить overrides</button>
+</form>
+{% endif %}
+{% endblock %}

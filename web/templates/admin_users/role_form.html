@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not role %}
+<div class="alert alert-warning">Роль не найдена</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Роль: {{ role.label }}</h1>
+  <a class="btn btn-outline-secondary" href="/admin/admin-users/roles">Назад</a>
+</div>
+<form method="post">
+  {% for group, permissions in grouped_permissions.items() %}
+  <h2 class="h5 mt-3">{{ group }}</h2>
+  <div class="row g-2">
+    {% for p in permissions %}
+    <div class="col-md-6 col-xl-4">
+      <label class="form-check border rounded p-2 d-block">
+        <input class="form-check-input me-1" type="checkbox" name="permissions" value="{{ p.key }}" {% if p.key in selected %}checked{% endif %} {% if role.role_key == "owner" %}disabled{% endif %}>
+        <code>{{ p.key }}</code><br><span class="text-muted">{{ p.label }}</span>
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button class="btn btn-primary mt-3" {% if role.role_key == "owner" %}disabled{% endif %}>Сохранить роль</button>
+</form>
+{% endif %}
+{% endblock %}

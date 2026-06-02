@@ -28,6 +28,7 @@
         {% if can("settings.view") %}<li class="nav-item"><a class="nav-link" href="/admin/settings">Настройки</a></li>{% endif %}
         {% if can("system.view") %}<li class="nav-item"><a class="nav-link" href="/admin/system">Система</a></li>{% endif %}
         {% if can("system.backups") %}<li class="nav-item"><a class="nav-link" href="/admin/system/backups">Бэкапы</a></li>{% endif %}
+        {% if can("admin_users.view") %}<li class="nav-item"><a class="nav-link" href="/admin/admin-users">Админы</a></li>{% endif %}
         {% if can("audit.view") %}<li class="nav-item"><a class="nav-link" href="/admin/audit">Аудит</a></li>{% endif %}
       </ul>
       <span class="navbar-text me-3">{{ admin.username }}</span>

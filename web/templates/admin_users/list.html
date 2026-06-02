@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">Web админы</h1>
+  <div class="btn-group">
+    {% if can("admin_roles.view") %}<a class="btn btn-outline-secondary" href="/admin/admin-users/roles">Роли</a>{% endif %}
+    {% if can("admin_users.create") %}<a class="btn btn-primary" href="/admin/admin-users/new">Создать</a>{% endif %}
+  </div>
+</div>
+<form class="row g-2 mb-3">
+  <div class="col-md-4"><input class="form-control" name="q" value="{{ q }}" placeholder="username или id"></div>
+  <div class="col-md-3"><select class="form-select" name="role"><option value="">Все роли</option>{% for r in roles %}<option value="{{ r.role_key }}" {% if role == r.role_key %}selected{% endif %}>{{ r.label }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><select class="form-select" name="active"><option value="all">Все</option><option value="active" {% if active == "active" %}selected{% endif %}>Только активные</option></select></div>
+  <div class="col"><button class="btn btn-outline-primary">Фильтр</button></div>
+</form>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Active</th><th>Created</th><th>Last login</th><th>Sessions</th><th>Failed 24h</th><th></th></tr></thead>
+    <tbody>
+    {% for item in admin_users %}
+    <tr>
+      <td>{{ item.id }}</td>
+      <td><a href="/admin/admin-users/{{ item.id }}">{{ item.username }}</a></td>
+      <td><span class="badge text-bg-secondary">{{ item.role }}</span></td>
+      <td><span class="badge text-bg-{{ 'success' if item.is_active else 'danger' }}">{{ "yes" if item.is_active else "no" }}</span></td>
+      <td>{{ item.created_at }}</td>
+      <td>{{ item.last_login_at or "-" }}</td>
+      <td>{{ item.active_sessions_count }}</td>
+      <td>{{ item.failed_logins_24h }}</td>
+      <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/admin/admin-users/{{ item.id }}">Открыть</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="9" class="text-muted">Нет Web-админов</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

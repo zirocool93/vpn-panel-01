@@ -34,7 +34,7 @@ def _add_column(conn: sqlite3.Connection, table: str, column_def: str) -> None:
 INITIAL_VERSION = 21
 
 # Текущая версия схемы БД (инкрементируется при добавлении новых миграций)
-LATEST_VERSION = 38
+LATEST_VERSION = 39
 
 
 def _my_keys_item_template() -> str:
@@ -1338,6 +1338,84 @@ def migration_38(conn):
     logger.info("Migration v38 applied: backup_log added")
 
 
+def migration_39(conn):
+    """Migration v39: DB-backed Web admin roles and personal permission overrides."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin_roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role_key TEXT NOT NULL UNIQUE,
+            label TEXT NOT NULL,
+            description TEXT,
+            permissions_json TEXT NOT NULL DEFAULT '[]',
+            is_system INTEGER NOT NULL DEFAULT 1,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_roles_role_key ON admin_roles(role_key)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_roles_is_active ON admin_roles(is_active)")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin_user_permission_overrides (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_user_id INTEGER NOT NULL,
+            permission TEXT NOT NULL,
+            effect TEXT NOT NULL CHECK(effect IN ('allow', 'deny')),
+            reason TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME,
+            UNIQUE(admin_user_id, permission),
+            FOREIGN KEY(admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_user_permission_overrides_admin_user_id ON admin_user_permission_overrides(admin_user_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_user_permission_overrides_permission ON admin_user_permission_overrides(permission)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_admin_user_permission_overrides_effect ON admin_user_permission_overrides(effect)")
+
+    all_permissions = [
+        "dashboard.view", "audit.view",
+        "servers.view", "servers.create", "servers.update", "servers.delete", "servers.toggle", "servers.test", "servers.diagnostics", "servers.relogin", "servers.reset_api_token",
+        "tariffs.view", "tariffs.create", "tariffs.update", "tariffs.toggle", "tariffs.delete",
+        "users.view", "users.ban", "users.balance", "users.assign_tariff",
+        "keys.view", "keys.create", "keys.update", "keys.delete", "keys.extend", "keys.reset_traffic", "keys.sync", "keys.links",
+        "pages.view", "pages.update", "pages.reset", "pages.copy_default_buttons",
+        "payments.view", "payments.manage",
+        "settings.view", "settings.update",
+        "system.view", "system.diagnostics", "system.logs", "system.clear_logs", "system.restart", "system.backups", "system.backup_create", "system.backup_download", "system.backup_restore", "system.backup_delete",
+        "admin_users.view", "admin_users.create", "admin_users.update", "admin_users.disable", "admin_users.delete", "admin_users.reset_password", "admin_users.sessions", "admin_users.permissions",
+        "admin_roles.view", "admin_roles.update",
+    ]
+    role_permissions = {
+        "owner": all_permissions,
+        "admin": [p for p in all_permissions if p not in {"system.restart", "system.backup_restore"}],
+        "support": ["dashboard.view", "users.view", "users.assign_tariff", "keys.view", "keys.create", "keys.update", "keys.extend", "keys.sync", "keys.links", "servers.view", "servers.diagnostics", "tariffs.view", "pages.view"],
+        "finance": ["dashboard.view", "users.view", "users.balance", "payments.view", "payments.manage", "tariffs.view", "audit.view"],
+        "content": ["dashboard.view", "pages.view", "pages.update", "pages.reset", "pages.copy_default_buttons"],
+        "readonly": ["dashboard.view", "servers.view", "users.view", "keys.view", "tariffs.view", "payments.view", "pages.view", "system.view"],
+    }
+    labels = {
+        "owner": "Owner",
+        "admin": "Admin",
+        "support": "Support",
+        "finance": "Finance",
+        "content": "Content",
+        "readonly": "Readonly",
+    }
+    for role_key, permissions in role_permissions.items():
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO admin_roles (role_key, label, description, permissions_json, is_system, is_active)
+            VALUES (?, ?, ?, ?, 1, 1)
+            """,
+            (role_key, labels[role_key], f"System role: {role_key}", json.dumps(sorted(permissions), ensure_ascii=False)),
+        )
+    logger.info("Migration v39 applied: admin_roles and admin_user_permission_overrides added")
+
+
 MIGRATIONS = {
     22: migration_22,
     23: migration_23,
@@ -1356,6 +1434,7 @@ MIGRATIONS = {
     36: migration_36,
     37: migration_37,
     38: migration_38,
+    39: migration_39,
 }
 
 

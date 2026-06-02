@@ -67,6 +67,37 @@ rm -f database/vpn_bot.db-wal database/vpn_bot.db-shm
 systemctl start yadreno-vpn yadreno-vpn-web
 ```
 
+## Web administrators and access permissions
+
+Web administrators are managed in `/admin/admin-users`. The section is visible only to users with `admin_users.view`.
+
+Roles:
+
+- `owner`: always has all permissions and cannot be stripped of access;
+- `admin`: broad access except the most dangerous system restore/restart operations;
+- `support`: users, keys, server diagnostics, tariffs and page view;
+- `finance`: users, balances, payments, tariffs and audit;
+- `content`: Telegram bot pages;
+- `readonly`: read-only access.
+
+Roles are stored in `admin_roles`. If the table is unavailable during early startup, Web falls back to the static roles in `web/security.py`. Personal overrides are stored in `admin_user_permission_overrides` and can be set to `inherit`, `allow` or `deny`. Owner ignores deny overrides and always receives all permissions.
+
+The UI supports creating Web admins, changing role/active state, resetting passwords, revoking sessions, viewing login attempts and viewing audit events for a specific admin. Password hashes, session tokens and CSRF tokens are never shown in Web.
+
+Safety rules:
+
+- the last active `owner` cannot be disabled or demoted;
+- only an owner can create or edit owner access;
+- password reset requires `RESET`;
+- disabling an admin requires `DISABLE`;
+- revoking sessions requires `REVOKE`.
+
+CLI creation also supports roles:
+
+```bash
+WEB_ADMIN_USERNAME=admin WEB_ADMIN_PASSWORD='long-password' WEB_ADMIN_ROLE=owner python tools/create_web_admin.py
+```
+
 ## Ручной запуск
 
 ```bash

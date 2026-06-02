@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not target %}
+<div class="alert alert-warning">Web админ не найден</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3">{{ target.username }}</h1>
+  <div class="btn-group">
+    {% if can("admin_users.update") %}<a class="btn btn-outline-primary" href="/admin/admin-users/{{ target.id }}/edit">Редактировать</a>{% endif %}
+    {% if can("admin_users.reset_password") %}<a class="btn btn-outline-warning" href="/admin/admin-users/{{ target.id }}/password">Пароль</a>{% endif %}
+    {% if can("admin_users.permissions") %}<a class="btn btn-outline-secondary" href="/admin/admin-users/{{ target.id }}/permissions">Права</a>{% endif %}
+  </div>
+</div>
+<dl class="row">
+  <dt class="col-sm-2">ID</dt><dd class="col-sm-10">{{ target.id }}</dd>
+  <dt class="col-sm-2">Role</dt><dd class="col-sm-10"><span class="badge text-bg-secondary">{{ target.role }}</span></dd>
+  <dt class="col-sm-2">Active</dt><dd class="col-sm-10"><span class="badge text-bg-{{ 'success' if target.is_active else 'danger' }}">{{ target.is_active }}</span></dd>
+  <dt class="col-sm-2">Created</dt><dd class="col-sm-10">{{ target.created_at }}</dd>
+  <dt class="col-sm-2">Last login</dt><dd class="col-sm-10">{{ target.last_login_at or "-" }}</dd>
+</dl>
+<div class="mb-3">
+  {% if target.is_active and can("admin_users.disable") %}<form class="d-inline" method="post" action="/admin/admin-users/{{ target.id }}/disable" data-confirm-code="DISABLE"><button class="btn btn-outline-danger">Отключить</button></form>{% endif %}
+  {% if not target.is_active and can("admin_users.update") %}<form class="d-inline" method="post" action="/admin/admin-users/{{ target.id }}/enable"><button class="btn btn-outline-success">Включить</button></form>{% endif %}
+  {% if can("admin_users.sessions") %}<form class="d-inline" method="post" action="/admin/admin-users/{{ target.id }}/revoke-sessions" data-confirm-code="REVOKE"><button class="btn btn-outline-warning">Отозвать сессии</button></form>{% endif %}
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card"><div class="card-body"><h2 class="h5">Сессии</h2><div class="table-responsive"><table class="table table-sm"><thead><tr><th>ID</th><th>IP</th><th>Active</th><th>Expires</th></tr></thead><tbody>{% for s in sessions %}<tr><td>{{ s.id }}</td><td>{{ s.ip_address or "" }}</td><td>{{ s.is_active }}</td><td>{{ s.expires_at }}</td></tr>{% else %}<tr><td colspan="4" class="text-muted">Нет сессий</td></tr>{% endfor %}</tbody></table></div></div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-body"><h2 class="h5">Попытки входа</h2><div class="table-responsive"><table class="table table-sm"><thead><tr><th>Time</th><th>Success</th><th>Reason</th><th>IP</th></tr></thead><tbody>{% for a in login_attempts %}<tr><td>{{ a.created_at }}</td><td>{{ a.success }}</td><td>{{ a.failure_reason or "" }}</td><td>{{ a.ip_address or "" }}</td></tr>{% else %}<tr><td colspan="4" class="text-muted">Нет попыток</td></tr>{% endfor %}</tbody></table></div></div></div></div>
+</div>
+<h2 class="h5 mt-4">Effective permissions</h2>
+<div class="d-flex flex-wrap gap-1">{% for p in effective_permissions %}<span class="badge text-bg-light border">{{ p }}</span>{% endfor %}</div>
+<h2 class="h5 mt-4">Audit</h2>
+<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Time</th><th>Action</th><th>Details</th></tr></thead><tbody>{% for e in audit_events %}<tr><td>{{ e.created_at }}</td><td>{{ e.action }}</td><td><code>{{ e.details or "" }}</code></td></tr>{% else %}<tr><td colspan="3" class="text-muted">Нет событий</td></tr>{% endfor %}</tbody></table></div>
+{% endif %}
+{% endblock %}

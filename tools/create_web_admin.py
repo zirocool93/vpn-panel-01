@@ -1,4 +1,4 @@
-"""Create the first Web admin user.
+"""Create a Web admin user.
 
 Run:
     python tools/create_web_admin.py
@@ -17,6 +17,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from database.migrations import run_migrations  # noqa: E402
+from services.admin_permissions_service import get_role, list_roles  # noqa: E402
 from services.auth_service import create_admin_user  # noqa: E402
 
 
@@ -52,12 +53,20 @@ def main() -> int:
     if password != password_confirm:
         print("Ошибка: пароли не совпадают.")
         return 1
-    if len(password) < 8:
-        print("Ошибка: пароль должен быть не короче 8 символов.")
+    if len(password) < 10:
+        print("Ошибка: пароль должен быть не короче 10 символов.")
+        return 1
+
+    role = (os.getenv("WEB_ADMIN_ROLE") or "").strip().lower()
+    if not role:
+        roles = ", ".join(item["role_key"] for item in list_roles())
+        role = (input(f"Role [owner] ({roles}): ").strip() or "owner").lower()
+    if not get_role(role):
+        print(f"Ошибка: неизвестная роль '{role}'.")
         return 1
 
     try:
-        user_id = create_admin_user(username, password)
+        user_id = create_admin_user(username, password, role=role)
     except sqlite3.IntegrityError:
         print(f"Ошибка: Web-админ '{username}' уже существует.")
         return 1
@@ -65,7 +74,8 @@ def main() -> int:
         print(f"Ошибка: {exc}")
         return 1
 
-    print(f"Web-админ создан: {username} (id={user_id})")
+    print(f"Web-админ создан: {username} (id={user_id}, role={role})")
+    print("Управление Web-админами доступно в /admin/admin-users")
     return 0
 
 

@@ -65,6 +65,16 @@ ALL_PERMISSIONS = {
     "system.backup_download",
     "system.backup_restore",
     "system.backup_delete",
+    "admin_users.view",
+    "admin_users.create",
+    "admin_users.update",
+    "admin_users.disable",
+    "admin_users.delete",
+    "admin_users.reset_password",
+    "admin_users.sessions",
+    "admin_users.permissions",
+    "admin_roles.view",
+    "admin_roles.update",
 }
 
 ROLES = {
@@ -94,6 +104,22 @@ PERMISSION_RULES = [
     ("GET", "/admin", "dashboard.view"),
     ("GET", "/admin/", "dashboard.view"),
     ("GET", "/admin/audit*", "audit.view"),
+    ("GET", "/admin/admin-users/roles", "admin_roles.view"),
+    ("GET", "/admin/admin-users/roles/*", "admin_roles.view"),
+    ("POST", "/admin/admin-users/roles/*", "admin_roles.update"),
+    ("GET", "/admin/admin-users/new", "admin_users.create"),
+    ("POST", "/admin/admin-users/new", "admin_users.create"),
+    ("GET", "/admin/admin-users/*/permissions", "admin_users.permissions"),
+    ("POST", "/admin/admin-users/*/permissions", "admin_users.permissions"),
+    ("GET", "/admin/admin-users/*/password", "admin_users.reset_password"),
+    ("POST", "/admin/admin-users/*/password", "admin_users.reset_password"),
+    ("POST", "/admin/admin-users/*/disable", "admin_users.disable"),
+    ("POST", "/admin/admin-users/*/enable", "admin_users.update"),
+    ("POST", "/admin/admin-users/*/revoke-sessions", "admin_users.sessions"),
+    ("GET", "/admin/admin-users/*/edit", "admin_users.update"),
+    ("POST", "/admin/admin-users/*/edit", "admin_users.update"),
+    ("GET", "/admin/admin-users/*", "admin_users.view"),
+    ("GET", "/admin/admin-users", "admin_users.view"),
     ("GET", "/admin/servers", "servers.view"),
     ("GET", "/admin/servers/new", "servers.create"),
     ("POST", "/admin/servers/new", "servers.create"),
@@ -217,8 +243,13 @@ def require_confirm(value: str | None, expected: str) -> bool:
 def has_permission(admin: dict[str, Any] | None, permission: str) -> bool:
     if not admin:
         return False
-    role = (admin.get("role") or "readonly").strip().lower()
-    return permission in ROLES.get(role, set())
+    try:
+        from services.admin_permissions_service import get_effective_permissions
+
+        return permission in get_effective_permissions(admin)
+    except Exception:
+        role = (admin.get("role") or "readonly").strip().lower()
+        return permission in ROLES.get(role, set())
 
 
 def permission_for_request(method: str, path: str) -> Optional[str]:
