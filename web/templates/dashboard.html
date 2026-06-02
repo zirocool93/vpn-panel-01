@@ -1,43 +1,197 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="h3 mb-4">Dashboard</h1>
-<div class="row g-3 mb-4">
-  {% set cards = [
-    ("Пользователи", summary.users_total),
-    ("Активные пользователи", summary.users_active),
-    ("Ключи", summary.keys_total),
-    ("Активные ключи", summary.keys_active),
-    ("Серверы", summary.servers_total),
-    ("Активные серверы", summary.servers_active),
-    ("Платежи сегодня", summary.payments_today.paid_count),
-    ("Платежи 7 дней", summary.payments_7_days.paid_count),
-    ("Платежи 30 дней", summary.payments_30_days.paid_count)
-  ] %}
-  {% for label, value in cards %}
-  <div class="col-12 col-md-4 col-xl-2">
-    <div class="card stat-card"><div class="card-body"><div class="text-muted small">{{ label }}</div><div class="fs-3">{{ value or 0 }}</div></div></div>
-  </div>
-  {% endfor %}
-</div>
+{% set health_class = "status-ok" if dashboard.health.status == "ok" else "status-danger" if dashboard.health.status == "danger" else "status-warning" %}
 
-<div class="row g-4">
-  <div class="col-lg-6">
-    <h2 class="h5">Последние пользователи</h2>
-    <table class="table table-sm"><tr><th>ID</th><th>Telegram</th><th>Username</th></tr>
-      {% for user in summary.recent_users %}<tr><td><a href="/admin/users/{{ user.id }}">{{ user.id }}</a></td><td>{{ user.telegram_id }}</td><td>{{ user.username or "" }}</td></tr>{% endfor %}
-    </table>
+<section class="dashboard-hero">
+  <div>
+    <h2>Операционная панель VPN</h2>
+    <p>Ключевые метрики, платежи и состояние инфраструктуры в одном месте. Данные обновляются при открытии страницы и не вызывают внешние панели серверов.</p>
+    <div class="hero-meta">
+      <span class="hero-pill">Git: {{ dashboard.git.branch or "unknown" }}{% if dashboard.git.commit_short %} / {{ dashboard.git.commit_short }}{% endif %}</span>
+      <span class="hero-pill">Сгенерировано: {{ dashboard.generated_at[:19].replace("T", " ") }}</span>
+      <span class="hero-pill {{ health_class }}">Состояние: {{ "OK" if dashboard.health.status == "ok" else "Проблема" if dashboard.health.status == "danger" else "Внимание" }}</span>
+    </div>
   </div>
-  <div class="col-lg-6">
-    <h2 class="h5">Последние платежи</h2>
-    <table class="table table-sm"><tr><th>ID</th><th>Пользователь</th><th>Тип</th><th>Статус</th></tr>
-      {% for p in summary.recent_payments %}<tr><td>{{ p.id }}</td><td>{{ p.username or p.telegram_id }}</td><td>{{ p.payment_type }}</td><td>{{ p.status }}</td></tr>{% endfor %}
-    </table>
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <div>
+        <h3 class="admin-card-title">Быстрые действия</h3>
+        <p class="admin-card-subtitle">Основные переходы для ежедневной работы</p>
+      </div>
+    </div>
+    <div class="quick-grid">
+      {% if can("users.view") %}<a class="quick-action" href="/admin/users"><span class="quick-icon">U</span><span>Пользователи</span></a>{% endif %}
+      {% if can("keys.create") %}<a class="quick-action" href="/admin/keys/new"><span class="quick-icon">K</span><span>Новый ключ</span></a>{% endif %}
+      {% if can("payments.view") %}<a class="quick-action" href="/admin/payments"><span class="quick-icon">₽</span><span>Платежи</span></a>{% endif %}
+      {% if can("servers.diagnostics") %}<a class="quick-action" href="/admin/system/diagnostics"><span class="quick-icon">H</span><span>Диагностика</span></a>{% endif %}
+    </div>
   </div>
-</div>
+</section>
 
-<h2 class="h5 mt-4">Серверы</h2>
-<table class="table table-sm"><tr><th>ID</th><th>Название</th><th>Host</th><th>Активен</th></tr>
-  {% for server in summary.servers %}<tr><td>{{ server.id }}</td><td><a href="/admin/servers/{{ server.id }}">{{ server.name }}</a></td><td>{{ server.host }}:{{ server.port }}</td><td>{{ "да" if server.is_active else "нет" }}</td></tr>{% endfor %}
-</table>
+<section class="metric-grid">
+  <div class="metric-card metric-accent-primary">
+    <div class="metric-label">Пользователи</div>
+    <div class="metric-value">{{ dashboard.users.total }}</div>
+    <div class="metric-note">Активных: {{ dashboard.users.active }} · новых за 24ч: {{ dashboard.users.new_24h }}</div>
+  </div>
+  <div class="metric-card metric-accent-success">
+    <div class="metric-label">VPN ключи</div>
+    <div class="metric-value">{{ dashboard["keys"].active }}</div>
+    <div class="metric-note">Всего: {{ dashboard["keys"].total }} · истекают за 3 дня: {{ dashboard["keys"].expiring_3d }}</div>
+  </div>
+  <div class="metric-card metric-accent-warning">
+    <div class="metric-label">Платежи за 7 дней</div>
+    <div class="metric-value">{{ dashboard.payments.last_7_days.paid_count or 0 }}</div>
+    <div class="metric-note">Сегодня: {{ dashboard.payments.today.paid_count or 0 }} · 30 дней: {{ dashboard.payments.last_30_days.paid_count or 0 }}</div>
+  </div>
+  <div class="metric-card {{ 'metric-accent-danger' if dashboard.servers.with_errors else 'metric-accent-success' }}">
+    <div class="metric-label">Серверы</div>
+    <div class="metric-value">{{ dashboard.servers.active }}/{{ dashboard.servers.total }}</div>
+    <div class="metric-note">С ошибками диагностики: {{ dashboard.servers.with_errors }}</div>
+  </div>
+</section>
+
+<section class="dashboard-grid">
+  <div class="admin-card" style="grid-column: span 7;">
+    <div class="admin-card-header">
+      <div>
+        <h3 class="admin-card-title">Серверы</h3>
+        <p class="admin-card-subtitle">Локальные данные и последний результат диагностики</p>
+      </div>
+      {% if can("servers.view") %}<a href="/admin/servers" class="btn btn-sm btn-outline-primary">Все серверы</a>{% endif %}
+    </div>
+    {% if dashboard.servers["items"] %}
+    <div class="list-stack">
+      {% for server in dashboard.servers["items"] %}
+      {% set server_status = "ok" if server.is_active and server.diagnostic_status != "error" else "danger" if server.diagnostic_status == "error" else "muted" %}
+      <div class="list-row">
+        <div>
+          <div class="row-title"><span class="status-dot dot-{{ server_status }}"></span>{{ server.name or ("Server #" ~ server.id) }}</div>
+          <div class="row-subtitle">{{ server.host }}:{{ server.port }}{% if server.diagnostic_message %} · {{ server.diagnostic_message }}{% endif %}</div>
+        </div>
+        <div class="row-meta">
+          <span class="status-badge status-{{ server_status }}">{{ "Активен" if server.is_active else "Отключен" }}</span>
+          {% if server.panel_checked_at %}<div>{{ server.panel_checked_at }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">Серверы пока не добавлены</div>
+    {% endif %}
+  </div>
+
+  <div class="admin-card" style="grid-column: span 5;">
+    <div class="admin-card-header">
+      <div>
+        <h3 class="admin-card-title">Здоровье системы</h3>
+        <p class="admin-card-subtitle">Службы, SQLite WAL и последний бэкап</p>
+      </div>
+    </div>
+    <div class="health-grid">
+      <div class="health-item">
+        <div class="health-label">Bot service</div>
+        <div class="health-value"><span class="status-dot dot-{{ dashboard.health.bot_service.status }}"></span>{{ dashboard.health.bot_service.label }}</div>
+      </div>
+      <div class="health-item">
+        <div class="health-label">Web service</div>
+        <div class="health-value"><span class="status-dot dot-{{ dashboard.health.web_service.status }}"></span>{{ dashboard.health.web_service.label }}</div>
+      </div>
+      <div class="health-item">
+        <div class="health-label">SQLite</div>
+        <div class="health-value"><span class="status-dot dot-{{ dashboard.health.sqlite.status }}"></span>{{ dashboard.health.sqlite.integrity }} / {{ dashboard.health.sqlite.journal_mode }}</div>
+      </div>
+      <div class="health-item">
+        <div class="health-label">Бэкап</div>
+        <div class="health-value">{% if dashboard.health.last_backup %}{{ dashboard.health.last_backup.created_at }}{% else %}нет данных{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card" style="grid-column: span 6;">
+    <div class="admin-card-header">
+      <div>
+        <h3 class="admin-card-title">Последние платежи</h3>
+        <p class="admin-card-subtitle">Новые события оплаты и продления</p>
+      </div>
+      {% if can("payments.view") %}<a href="/admin/payments" class="btn btn-sm btn-outline-primary">Все платежи</a>{% endif %}
+    </div>
+    {% if dashboard.payments.recent %}
+    <div class="table-responsive table-modern">
+      <table class="table table-sm">
+        <thead><tr><th>ID</th><th>Пользователь</th><th>Тип</th><th>Сумма</th><th>Статус</th></tr></thead>
+        <tbody>
+          {% for payment in dashboard.payments.recent %}
+          <tr>
+            <td>{{ payment.id }}</td>
+            <td>{{ payment.username or payment.telegram_id or "-" }}</td>
+            <td>{{ payment.payment_type or "-" }}</td>
+            <td>{% if payment.amount_cents %}{{ "%.2f"|format(payment.amount_cents / 100) }} ₽{% elif payment.amount_stars %}{{ payment.amount_stars }} Stars{% else %}-{% endif %}</td>
+            <td><span class="status-badge status-{{ payment.status or 'muted' }}">{{ payment.status or "-" }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">Платежей пока нет</div>
+    {% endif %}
+  </div>
+
+  <div class="admin-card" style="grid-column: span 6;">
+    <div class="admin-card-header">
+      <div>
+        <h3 class="admin-card-title">Истекающие ключи</h3>
+        <p class="admin-card-subtitle">Ключи, у которых срок заканчивается в ближайшие 3 дня</p>
+      </div>
+      {% if can("keys.view") %}<a href="/admin/keys" class="btn btn-sm btn-outline-primary">Все ключи</a>{% endif %}
+    </div>
+    {% if dashboard["keys"]["items_expiring"] %}
+    <div class="list-stack">
+      {% for key in dashboard["keys"]["items_expiring"] %}
+      <div class="list-row">
+        <div>
+          <div class="row-title">{{ key.custom_name or ("Ключ #" ~ key.id) }}</div>
+          <div class="row-subtitle">{{ key.username or key.telegram_id or ("User #" ~ key.user_id) }} · {{ key.server_name or "сервер не указан" }}</div>
+        </div>
+        <div class="row-meta">{{ key.expires_at }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">Нет ключей, истекающих в ближайшие 3 дня</div>
+    {% endif %}
+  </div>
+
+  {% if can("audit.view") %}
+  <div class="admin-card" style="grid-column: span 12;">
+    <div class="admin-card-header">
+      <div>
+        <h3 class="admin-card-title">Последние действия администраторов</h3>
+        <p class="admin-card-subtitle">Краткий журнал изменений в панели</p>
+      </div>
+      <a href="/admin/audit" class="btn btn-sm btn-outline-primary">Открыть аудит</a>
+    </div>
+    {% if dashboard.audit.recent %}
+    <div class="table-responsive table-modern">
+      <table class="table table-sm">
+        <thead><tr><th>Время</th><th>Админ</th><th>Действие</th><th>Объект</th></tr></thead>
+        <tbody>
+          {% for item in dashboard.audit.recent %}
+          <tr>
+            <td>{{ item.created_at }}</td>
+            <td>{% if item.admin_username %}{{ item.admin_username }}{% elif item.admin_user_id %}ID {{ item.admin_user_id }}{% else %}-{% endif %}</td>
+            <td>{{ item.action }}</td>
+            <td>{{ item.entity_type or "-" }}{% if item.entity_id %} #{{ item.entity_id }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">В аудите пока нет записей</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
 {% endblock %}
-

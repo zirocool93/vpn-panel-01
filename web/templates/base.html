@@ -9,44 +9,80 @@
   <link href="/static/app.css" rel="stylesheet">
 </head>
 <body>
-{% if admin %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/admin">VPN Admin</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="nav">
-      <ul class="navbar-nav me-auto">
-        {% if can("dashboard.view") %}<li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>{% endif %}
-        {% if can("servers.view") %}<li class="nav-item"><a class="nav-link" href="/admin/servers">Серверы</a></li>{% endif %}
-        {% if can("tariffs.view") %}<li class="nav-item"><a class="nav-link" href="/admin/tariffs">Тарифы</a></li>{% endif %}
-        {% if can("users.view") %}<li class="nav-item"><a class="nav-link" href="/admin/users">Пользователи</a></li>{% endif %}
-        {% if can("keys.view") %}<li class="nav-item"><a class="nav-link" href="/admin/keys">Ключи</a></li>{% endif %}
-        {% if can("pages.view") %}<li class="nav-item"><a class="nav-link" href="/admin/pages">Страницы</a></li>{% endif %}
-        {% if can("payments.view") %}<li class="nav-item"><a class="nav-link" href="/admin/payments">Платежи</a></li>{% endif %}
-        {% if can("settings.view") %}<li class="nav-item"><a class="nav-link" href="/admin/settings">Настройки</a></li>{% endif %}
-        {% if can("system.view") %}<li class="nav-item"><a class="nav-link" href="/admin/system">Система</a></li>{% endif %}
-        {% if can("system.backups") %}<li class="nav-item"><a class="nav-link" href="/admin/system/backups">Бэкапы</a></li>{% endif %}
-        {% if can("admin_users.view") %}<li class="nav-item"><a class="nav-link" href="/admin/admin-users">Админы</a></li>{% endif %}
-        {% if can("audit.view") %}<li class="nav-item"><a class="nav-link" href="/admin/audit">Аудит</a></li>{% endif %}
-      </ul>
-      <span class="navbar-text me-3">{{ admin.username }}</span>
-      <a class="btn btn-outline-light btn-sm" href="/logout">Выход</a>
-    </div>
-  </div>
-</nav>
-{% endif %}
+{% set current_path = request.url.path %}
+{% set nav_items = [
+  {"label": "Dashboard", "href": "/admin", "permission": "dashboard.view", "icon": "D", "match": ["/admin"]},
+  {"label": "Серверы", "href": "/admin/servers", "permission": "servers.view", "icon": "S", "match": ["/admin/servers"]},
+  {"label": "Тарифы", "href": "/admin/tariffs", "permission": "tariffs.view", "icon": "T", "match": ["/admin/tariffs"]},
+  {"label": "Пользователи", "href": "/admin/users", "permission": "users.view", "icon": "U", "match": ["/admin/users"]},
+  {"label": "Ключи", "href": "/admin/keys", "permission": "keys.view", "icon": "K", "match": ["/admin/keys"]},
+  {"label": "Страницы", "href": "/admin/pages", "permission": "pages.view", "icon": "P", "match": ["/admin/pages"]},
+  {"label": "Платежи", "href": "/admin/payments", "permission": "payments.view", "icon": "₽", "match": ["/admin/payments"]},
+  {"label": "Настройки", "href": "/admin/settings", "permission": "settings.view", "icon": "N", "match": ["/admin/settings"]},
+  {"label": "Система", "href": "/admin/system", "permission": "system.view", "icon": "H", "match": ["/admin/system/diagnostics", "/admin/system/services", "/admin/system/network", "/admin/system/database", "/admin/system"]},
+  {"label": "Бэкапы", "href": "/admin/system/backups", "permission": "system.backups", "icon": "B", "match": ["/admin/system/backups"]},
+  {"label": "Аудит", "href": "/admin/audit", "permission": "audit.view", "icon": "A", "match": ["/admin/audit"]},
+  {"label": "Админы", "href": "/admin/admin-users", "permission": "admin_users.view", "icon": "M", "match": ["/admin/admin-users"]}
+] %}
 
-<main class="container-fluid py-4">
+{% if admin %}
+<div class="admin-shell">
+  <aside class="admin-sidebar" data-sidebar>
+    <div class="sidebar-brand">
+      <a href="/admin" class="brand-mark">VPN</a>
+      <div>
+        <div class="brand-title">Yadreno VPN</div>
+        <div class="brand-subtitle">Панель управления</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" aria-label="Основная навигация">
+      {% for item in nav_items %}
+        {% if can(item.permission) %}
+          {% set active = current_path == item.href or (item.href != "/admin" and current_path.startswith(item.href)) or current_path in item.match %}
+          <a class="sidebar-link {{ 'active' if active else '' }}" href="{{ item.href }}">
+            <span class="sidebar-icon">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  </aside>
+  <div class="sidebar-backdrop" data-sidebar-backdrop></div>
+
+  <div class="admin-main">
+    <header class="admin-topbar">
+      <button class="icon-button d-lg-none" type="button" data-sidebar-toggle aria-label="Открыть меню">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title">
+        <div class="page-kicker">Web Admin</div>
+        <h1>{{ title or "Dashboard" }}</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="admin-profile">
+          <span class="admin-avatar">{{ (admin.username or "A")[:1]|upper }}</span>
+          <span class="admin-name">{{ admin.username }}</span>
+          <span class="role-chip">{{ admin.role or "admin" }}</span>
+        </div>
+        <a class="btn btn-outline-secondary btn-sm" href="/logout">Выход</a>
+      </div>
+    </header>
+    <main class="admin-content">
+{% else %}
+<main class="auth-main">
+{% endif %}
   {% for flash in flashes %}
-  <div class="alert alert-{{ flash.category }} alert-dismissible fade show" role="alert">
+  <div class="alert alert-{{ flash.category }} admin-alert alert-dismissible fade show" role="alert">
     {{ flash.message }}
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
   {% endfor %}
   {% block content %}{% endblock %}
 </main>
+{% if admin %}
+  </div>
+</div>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>

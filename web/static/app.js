@@ -20,3 +20,28 @@ document.addEventListener("click", function (event) {
     }, 1200);
   });
 });
+
+document.addEventListener("click", function (event) {
+  const toggle = event.target.closest("[data-sidebar-toggle]");
+  const backdrop = event.target.closest("[data-sidebar-backdrop]");
+  const mobileLink = event.target.closest("[data-sidebar] .sidebar-link");
+  const sidebar = document.querySelector("[data-sidebar]");
+  const sidebarBackdrop = document.querySelector("[data-sidebar-backdrop]");
+
+  if (!sidebar || !sidebarBackdrop) {
+    return;
+  }
+
+  if (toggle) {
+    sidebar.classList.toggle("show");
+    sidebarBackdrop.classList.toggle("show");
+    document.body.classList.toggle("sidebar-open", sidebar.classList.contains("show"));
+    return;
+  }
+
+  if (backdrop || (mobileLink && window.innerWidth < 992)) {
+    sidebar.classList.remove("show");
+    sidebarBackdrop.classList.remove("show");
+    document.body.classList.remove("sidebar-open");
+  }
+});

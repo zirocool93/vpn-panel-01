@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
-from services.dashboard_service import get_dashboard_summary
+from services.dashboard_service import get_dashboard_data
 from web import security
 from web.deps import template_context, templates
 
@@ -19,5 +19,5 @@ async def dashboard(request: Request):
     return templates.TemplateResponse(
         request,
         "dashboard.html",
-        template_context(request, title="Dashboard", summary=get_dashboard_summary()),
+        template_context(request, title="Dashboard", dashboard=get_dashboard_data()),
     )

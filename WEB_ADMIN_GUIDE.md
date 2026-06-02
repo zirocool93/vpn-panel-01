@@ -49,6 +49,12 @@ For reverse proxy HTTPS, set `WEB_COOKIE_SECURE=1` in `/etc/yadreno-vpn/web.env`
 
 Dangerous Web actions require a typed confirmation code in addition to CSRF: `DELETE`, `RESET`, `RESTART`, `CLEAR`, `RESTORE` or `VACUUM`.
 
+## Web dashboard UI
+
+The Web admin uses a Bootstrap 5 based SaaS layout with a dark sidebar, sticky topbar and permission-aware navigation. The shared shell is defined in `web/templates/base.html`, the dashboard is in `web/templates/dashboard.html`, and visual tokens/components are in `web/static/app.css`.
+
+Dashboard data is built by `services/dashboard_service.py` from local sources only: SQLite, git metadata, systemd status and backup metadata. It does not call remote 3X-UI panels, so opening `/admin` should stay fast and should not depend on VPN server API availability.
+
 ## Web backups
 
 Backups are available at `/admin/system/backups`. A backup is a `.tar.gz` archive in `backups/` containing a consistent SQLite copy created through `sqlite3.Connection.backup()` and `metadata.json`. `config.py` and `/etc/yadreno-vpn/web.env` are not included by default because they may contain secrets.
