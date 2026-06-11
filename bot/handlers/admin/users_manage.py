@@ -10,6 +10,7 @@ from database.requests import get_users_stats, get_all_users_paginated, get_user
 from bot.utils.admin import is_admin
 from bot.utils.text import escape_html, safe_edit_or_send
 from bot.utils.panel_email import get_panel_email_prefix
+from bot.utils.datetime_format import format_datetime_for_display
 from bot.states.admin_states import AdminStates
 from bot.keyboards.admin import users_menu_kb, users_list_kb, user_view_kb, user_ban_confirm_kb, key_view_kb, add_key_server_kb, add_key_inbound_kb, add_key_step_kb, add_key_confirm_kb, users_input_cancel_kb, key_action_cancel_kb, back_and_home_kb, home_only_kb
 from bot.services.vpn_api import get_client_from_server_data, VPNAPIError, format_traffic
@@ -21,25 +22,25 @@ router = Router()
 USERS_PER_PAGE = 20
 
 def format_user_display(user: dict) -> str:
-    """Форматирует имя пользователя для отображения."""
+    """Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ РёРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ."""
     if user.get('username'):
         return f"@{user['username']}"
     return f"ID: {user['telegram_id']}"
 
 @router.callback_query(F.data.startswith('admin_user_view:'))
 async def show_user_view_callback(callback: CallbackQuery, state: FSMContext):
-    """Показывает карточку пользователя (из callback)."""
+    """РџРѕРєР°Р·С‹РІР°РµС‚ РєР°СЂС‚РѕС‡РєСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (РёР· callback)."""
     if not is_admin(callback.from_user.id):
-        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        await callback.answer('в›” Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ', show_alert=True)
         return
     telegram_id = int(callback.data.split(':')[1])
     await _show_user_view_edit(callback, state, telegram_id)
 
 async def _show_user_view(message: Message, state: FSMContext, telegram_id: int):
-    """Показывает карточку пользователя (новое сообщение)."""
+    """РџРѕРєР°Р·С‹РІР°РµС‚ РєР°СЂС‚РѕС‡РєСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (РЅРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ)."""
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await safe_edit_or_send(message, f'❌ Пользователь с ID {telegram_id} не найден', reply_markup=home_only_kb(), force_new=True)
+        await safe_edit_or_send(message, f'вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ ID {telegram_id} РЅРµ РЅР°Р№РґРµРЅ', reply_markup=home_only_kb(), force_new=True)
         return
     await state.set_state(AdminStates.user_view)
     await state.update_data(current_user_telegram_id=telegram_id)
@@ -47,10 +48,10 @@ async def _show_user_view(message: Message, state: FSMContext, telegram_id: int)
     await safe_edit_or_send(message, text, reply_markup=keyboard, force_new=True)
 
 async def _show_user_view_edit(callback: CallbackQuery, state: FSMContext, telegram_id: int):
-    """Показывает карточку пользователя (редактирование сообщения)."""
+    """РџРѕРєР°Р·С‹РІР°РµС‚ РєР°СЂС‚РѕС‡РєСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ (СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ СЃРѕРѕР±С‰РµРЅРёСЏ)."""
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await callback.answer('Пользователь не найден', show_alert=True)
+        await callback.answer('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ', show_alert=True)
         return
     await state.set_state(AdminStates.user_view)
     await state.update_data(current_user_telegram_id=telegram_id)
@@ -59,37 +60,41 @@ async def _show_user_view_edit(callback: CallbackQuery, state: FSMContext, teleg
     await callback.answer()
 
 def _format_user_card(user: dict) -> tuple[str, any]:
-    """Форматирует карточку пользователя."""
+    """Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ РєР°СЂС‚РѕС‡РєСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ."""
     telegram_id = user['telegram_id']
     username = user.get('username')
     is_banned = bool(user.get('is_banned'))
-    created_at = user.get('created_at', 'неизвестно')
+    is_bot_blocked = bool(user.get('is_bot_blocked'))
+    created_at = format_datetime_for_display(user.get('created_at'), fallback='?')
     balance_cents = get_user_balance(user['id'])
     referral_coefficient = get_user_referral_coefficient(user['id'])
     vpn_keys = get_user_vpn_keys(user['id'])
     
     lines = []
     if is_banned:
-        lines.append('🚫 <b>ПОЛЬЗОВАТЕЛЬ ЗАБАНЕН</b>')
+        lines.append('рџљ« <b>РџРћР›Р¬Р—РћР’РђРўР•Р›Р¬ Р—РђР‘РђРќР•Рќ</b>')
+        lines.append('')
+    if is_bot_blocked:
+        lines.append('📵 <b>Пользователь заблокировал бота</b>')
         lines.append('')
         
     if username:
-        lines.append(f'👤 Username: @{escape_html(username)}')
+        lines.append(f'рџ‘¤ Username: @{escape_html(username)}')
     else:
-        lines.append('👤 Username: _не указан_')
+        lines.append('рџ‘¤ Username: _РЅРµ СѓРєР°Р·Р°РЅ_')
         
-    lines.append(f'📱 Telegram ID: <code>{telegram_id}</code>')
+    lines.append(f'рџ“± Telegram ID: <code>{telegram_id}</code>')
     
     panel_email_prefix = get_panel_email_prefix(user)
-    lines.append(f'📧 E-mail в панели: <code>{escape_html(panel_email_prefix)}</code>')
-    lines.append(f'📅 Зарегистрирован: {created_at}')
+    lines.append(f'рџ“§ E-mail РІ РїР°РЅРµР»Рё: <code>{escape_html(panel_email_prefix)}</code>')
+    lines.append(f'рџ“… Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ: {created_at}')
     
     balance_rub = balance_cents / 100
-    lines.append(f'💰 Баланс: <b>{balance_rub:.2f} ₽</b>')
-    lines.append(f'📊 Реферальный коэффициент: <b>{referral_coefficient}x</b>')
+    lines.append(f'рџ’° Р‘Р°Р»Р°РЅСЃ: <b>{balance_rub:.2f} в‚Ѕ</b>')
+    lines.append(f'рџ“Љ Р РµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕСЌС„С„РёС†РёРµРЅС‚: <b>{referral_coefficient}x</b>')
     lines.append('')
     if vpn_keys:
-        lines.append(f'🔑 <b>VPN-ключи ({len(vpn_keys)}):</b>')
+        lines.append(f'рџ”‘ <b>VPN-РєР»СЋС‡Рё ({len(vpn_keys)}):</b>')
         for key in vpn_keys:
             if key.get('custom_name'):
                 key_name = key['custom_name']
@@ -98,101 +103,102 @@ def _format_user_card(user: dict) -> tuple[str, any]:
                 if len(uuid) >= 8:
                     key_name = f'{uuid[:4]}...{uuid[-4:]}'
                 else:
-                    key_name = uuid or f"Ключ #{key['id']}"
-            expires = key.get('expires_at', '?')
+                    key_name = uuid or f"РљР»СЋС‡ #{key['id']}"
+            expires_raw = key.get('expires_at')
+            expires = format_datetime_for_display(expires_raw, fallback='?')
             try:
-                expires_dt = datetime.fromisoformat(expires.replace('Z', '+00:00'))
+                expires_dt = datetime.fromisoformat((expires_raw or '').replace('Z', '+00:00'))
                 if expires_dt < datetime.now(expires_dt.tzinfo if expires_dt.tzinfo else None):
-                    status = '🔴'
+                    status = 'рџ”ґ'
                 else:
-                    status = '🟢'
+                    status = 'рџџў'
             except:
-                status = '🔑'
-            lines.append(f'  {status} <code>{key_name}</code> (до {expires})')
+                status = 'рџ”‘'
+            lines.append(f'  {status} <code>{key_name}</code> (РґРѕ {expires})')
     else:
-        lines.append('🔑 _VPN-ключей нет_')
+        lines.append('рџ”‘ _VPN-РєР»СЋС‡РµР№ РЅРµС‚_')
     payment_stats = get_user_payments_stats(user['id'])
     lines.append('')
-    lines.append('💳 <b>Оплаты:</b>')
+    lines.append('рџ’і <b>РћРїР»Р°С‚С‹:</b>')
     total_payments = payment_stats.get('total_payments', 0)
     if total_payments > 0:
         total_usd = payment_stats.get('total_amount_cents', 0) / 100
         total_stars = payment_stats.get('total_amount_stars', 0)
         total_rub = payment_stats.get('total_amount_rub', 0)
-        last_payment = payment_stats.get('last_payment_at', '?')
-        lines.append(f'  📊 Всего платежей: {total_payments}')
+        last_payment = format_datetime_for_display(payment_stats.get('last_payment_at'), fallback='?')
+        lines.append(f'  рџ“Љ Р’СЃРµРіРѕ РїР»Р°С‚РµР¶РµР№: {total_payments}')
         if total_usd > 0:
             total_usd_str = f'{total_usd:g}'.replace('.', ',')
-            lines.append(f'  💰 Сумма (крипто): ${total_usd_str}')
+            lines.append(f'  рџ’° РЎСѓРјРјР° (РєСЂРёРїС‚Рѕ): ${total_usd_str}')
         if total_stars > 0:
-            lines.append(f'  ⭐ Сумма (Stars): {total_stars}')
+            lines.append(f'  в­ђ РЎСѓРјРјР° (Stars): {total_stars}')
         if total_rub > 0:
             total_rub_str = f'{total_rub:g}'.replace('.', ',')
-            lines.append(f'  💳 Сумма (Рубли): {total_rub_str} ₽')
-        lines.append(f'  📅 Последняя оплата: {last_payment}')
+            lines.append(f'  рџ’і РЎСѓРјРјР° (Р СѓР±Р»Рё): {total_rub_str} в‚Ѕ')
+        lines.append(f'  рџ“… РџРѕСЃР»РµРґРЅСЏСЏ РѕРїР»Р°С‚Р°: {last_payment}')
     else:
-        lines.append('  _Оплат не было_')
+        lines.append('  _РћРїР»Р°С‚ РЅРµ Р±С‹Р»Рѕ_')
     text = '\n'.join(lines)
     keyboard = user_view_kb(telegram_id, vpn_keys, is_banned, balance_cents, referral_coefficient)
     return (text, keyboard)
 
 @router.callback_query(F.data.startswith('admin_user_toggle_ban:'))
 async def request_ban_confirmation(callback: CallbackQuery, state: FSMContext):
-    """Запрос подтверждения бана/разбана."""
+    """Р—Р°РїСЂРѕСЃ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Р±Р°РЅР°/СЂР°Р·Р±Р°РЅР°."""
     if not is_admin(callback.from_user.id):
-        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        await callback.answer('в›” Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ', show_alert=True)
         return
     telegram_id = int(callback.data.split(':')[1])
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await callback.answer('Пользователь не найден', show_alert=True)
+        await callback.answer('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ', show_alert=True)
         return
     is_banned = bool(user.get('is_banned'))
     if is_banned:
-        action = 'разблокировать'
+        action = 'СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ'
     else:
-        action = 'заблокировать'
-    text = f'⚠️ <b>Подтверждение</b>\n\nВы уверены, что хотите <b>{action}</b> пользователя <code>{format_user_display(user)}</code>?'
+        action = 'Р·Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ'
+    text = f'вљ пёЏ <b>РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ</b>\n\nР’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ <b>{action}</b> РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ <code>{format_user_display(user)}</code>?'
     await safe_edit_or_send(callback.message, text, reply_markup=user_ban_confirm_kb(telegram_id, is_banned))
     await callback.answer()
 
 @router.callback_query(F.data.startswith('admin_user_ban_confirm:'))
 async def confirm_ban_toggle(callback: CallbackQuery, state: FSMContext):
-    """Подтверждение и выполнение бана/разбана."""
+    """РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ Рё РІС‹РїРѕР»РЅРµРЅРёРµ Р±Р°РЅР°/СЂР°Р·Р±Р°РЅР°."""
     if not is_admin(callback.from_user.id):
-        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        await callback.answer('в›” Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ', show_alert=True)
         return
     telegram_id = int(callback.data.split(':')[1])
     new_status = toggle_user_ban(telegram_id)
     if new_status is None:
-        await callback.answer('Пользователь не найден', show_alert=True)
+        await callback.answer('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ', show_alert=True)
         return
     if new_status:
-        await callback.answer('🚫 Пользователь заблокирован', show_alert=True)
+        await callback.answer('рџљ« РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ', show_alert=True)
     else:
-        await callback.answer('✅ Пользователь разблокирован', show_alert=True)
+        await callback.answer('вњ… РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ', show_alert=True)
     await _show_user_view_edit(callback, state, telegram_id)
 
 @router.callback_query(F.data.startswith('admin_user_coefficient:'))
 async def start_coefficient_edit(callback: CallbackQuery, state: FSMContext):
-    """Начало редактирования коэффициента."""
+    """РќР°С‡Р°Р»Рѕ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ РєРѕСЌС„С„РёС†РёРµРЅС‚Р°."""
     if not is_admin(callback.from_user.id):
-        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        await callback.answer('в›” Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ', show_alert=True)
         return
     telegram_id = int(callback.data.split(':')[1])
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await callback.answer('Пользователь не найден', show_alert=True)
+        await callback.answer('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ', show_alert=True)
         return
     current_coefficient = get_user_referral_coefficient(user['id'])
     await state.set_state(AdminStates.waiting_coefficient)
     await state.update_data(coefficient_user_telegram_id=telegram_id, coefficient_edit_message_id=callback.message.message_id)
-    await safe_edit_or_send(callback.message, f'📊 <b>Редактирование реферального коэффициента</b>\n\n👤 {format_user_display(user)}\n📱 ID: <code>{telegram_id}</code>\n\nТекущий реферальный коэффициент: <b>{current_coefficient}x</b>\n\nВведите новый реферальный коэффициент (0.0 - 10.0):', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'))
+    await safe_edit_or_send(callback.message, f'рџ“Љ <b>Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ СЂРµС„РµСЂР°Р»СЊРЅРѕРіРѕ РєРѕСЌС„С„РёС†РёРµРЅС‚Р°</b>\n\nрџ‘¤ {format_user_display(user)}\nрџ“± ID: <code>{telegram_id}</code>\n\nРўРµРєСѓС‰РёР№ СЂРµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕСЌС„С„РёС†РёРµРЅС‚: <b>{current_coefficient}x</b>\n\nР’РІРµРґРёС‚Рµ РЅРѕРІС‹Р№ СЂРµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕСЌС„С„РёС†РёРµРЅС‚ (0.0 - 10.0):', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'))
     await callback.answer()
 
 @router.message(AdminStates.waiting_coefficient, F.text, ~F.text.startswith('/'))
 async def process_coefficient_input(message: Message, state: FSMContext):
-    """Обработка ввода коэффициента."""
+    """РћР±СЂР°Р±РѕС‚РєР° РІРІРѕРґР° РєРѕСЌС„С„РёС†РёРµРЅС‚Р°."""
     if not is_admin(message.from_user.id):
         return
     from bot.utils.text import get_message_text_for_storage
@@ -215,50 +221,50 @@ async def process_coefficient_input(message: Message, state: FSMContext):
     await message.delete()
     if edit_message_id:
         try:
-            await message.bot.edit_message_text(chat_id=message.chat.id, message_id=edit_message_id, text=f'📊 <b>Реферальный коэффициент обновлён</b>\n\n👤 {format_user_display(user)}\n📱 ID: <code>{telegram_id}</code>\n\nНовый реферальный коэффициент: <b>{coefficient}x</b>', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'), parse_mode='HTML')
+            await message.bot.edit_message_text(chat_id=message.chat.id, message_id=edit_message_id, text=f'рџ“Љ <b>Р РµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕСЌС„С„РёС†РёРµРЅС‚ РѕР±РЅРѕРІР»С‘РЅ</b>\n\nрџ‘¤ {format_user_display(user)}\nрџ“± ID: <code>{telegram_id}</code>\n\nРќРѕРІС‹Р№ СЂРµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕСЌС„С„РёС†РёРµРЅС‚: <b>{coefficient}x</b>', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'), parse_mode='HTML')
         except Exception:
             pass
     await state.clear()
 
 @router.callback_query(F.data.regexp('^admin_user_balance_add:(\\d+)$'))
 async def start_balance_add(callback: CallbackQuery, state: FSMContext):
-    """Начало пополнения баланса пользователя."""
+    """РќР°С‡Р°Р»Рѕ РїРѕРїРѕР»РЅРµРЅРёСЏ Р±Р°Р»Р°РЅСЃР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ."""
     if not is_admin(callback.from_user.id):
-        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        await callback.answer('в›” Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ', show_alert=True)
         return
     telegram_id = int(callback.data.split(':')[1])
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await callback.answer('Пользователь не найден', show_alert=True)
+        await callback.answer('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ', show_alert=True)
         return
     current_balance = get_user_balance(user['id'])
     balance_rub = current_balance / 100
     await state.set_state(AdminStates.waiting_balance_amount)
     await state.update_data(balance_user_telegram_id=telegram_id, balance_operation='add')
-    await safe_edit_or_send(callback.message, f'💰 <b>Пополнение баланса</b>\n\n👤 {format_user_display(user)}\n📱 ID: <code>{telegram_id}</code>\n💼 Текущий баланс: <b>{balance_rub:.2f} ₽</b>\n\nВведите сумму пополнения в рублях (например: 100 или 50.5):', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'))
+    await safe_edit_or_send(callback.message, f'рџ’° <b>РџРѕРїРѕР»РЅРµРЅРёРµ Р±Р°Р»Р°РЅСЃР°</b>\n\nрџ‘¤ {format_user_display(user)}\nрџ“± ID: <code>{telegram_id}</code>\nрџ’ј РўРµРєСѓС‰РёР№ Р±Р°Р»Р°РЅСЃ: <b>{balance_rub:.2f} в‚Ѕ</b>\n\nР’РІРµРґРёС‚Рµ СЃСѓРјРјСѓ РїРѕРїРѕР»РЅРµРЅРёСЏ РІ СЂСѓР±Р»СЏС… (РЅР°РїСЂРёРјРµСЂ: 100 РёР»Рё 50.5):', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'))
     await callback.answer()
 
 @router.callback_query(F.data.regexp('^admin_user_balance_deduct:(\\d+)$'))
 async def start_balance_deduct(callback: CallbackQuery, state: FSMContext):
-    """Начало списания баланса пользователя."""
+    """РќР°С‡Р°Р»Рѕ СЃРїРёСЃР°РЅРёСЏ Р±Р°Р»Р°РЅСЃР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ."""
     if not is_admin(callback.from_user.id):
-        await callback.answer('⛔ Доступ запрещён', show_alert=True)
+        await callback.answer('в›” Р”РѕСЃС‚СѓРї Р·Р°РїСЂРµС‰С‘РЅ', show_alert=True)
         return
     telegram_id = int(callback.data.split(':')[1])
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await callback.answer('Пользователь не найден', show_alert=True)
+        await callback.answer('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ', show_alert=True)
         return
     current_balance = get_user_balance(user['id'])
     balance_rub = current_balance / 100
     await state.set_state(AdminStates.waiting_balance_amount)
     await state.update_data(balance_user_telegram_id=telegram_id, balance_operation='deduct')
-    await safe_edit_or_send(callback.message, f'💸 <b>Списание баланса</b>\n\n👤 {format_user_display(user)}\n📱 ID: <code>{telegram_id}</code>\n💼 Текущий баланс: <b>{balance_rub:.2f} ₽</b>\n\nВведите сумму списания в рублях (например: 100 или 50.5):', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'))
+    await safe_edit_or_send(callback.message, f'рџ’ё <b>РЎРїРёСЃР°РЅРёРµ Р±Р°Р»Р°РЅСЃР°</b>\n\nрџ‘¤ {format_user_display(user)}\nрџ“± ID: <code>{telegram_id}</code>\nрџ’ј РўРµРєСѓС‰РёР№ Р±Р°Р»Р°РЅСЃ: <b>{balance_rub:.2f} в‚Ѕ</b>\n\nР’РІРµРґРёС‚Рµ СЃСѓРјРјСѓ СЃРїРёСЃР°РЅРёСЏ РІ СЂСѓР±Р»СЏС… (РЅР°РїСЂРёРјРµСЂ: 100 РёР»Рё 50.5):', reply_markup=back_and_home_kb(f'admin_user_view:{telegram_id}'))
     await callback.answer()
 
 @router.message(AdminStates.waiting_balance_amount, F.text, ~F.text.startswith('/'))
 async def process_balance_amount(message: Message, state: FSMContext):
-    """Обработка ввода суммы баланса."""
+    """РћР±СЂР°Р±РѕС‚РєР° РІРІРѕРґР° СЃСѓРјРјС‹ Р±Р°Р»Р°РЅСЃР°."""
     if not is_admin(message.from_user.id):
         return
     from bot.utils.text import get_message_text_for_storage
@@ -269,39 +275,39 @@ async def process_balance_amount(message: Message, state: FSMContext):
         if amount_rub <= 0:
             raise ValueError()
     except ValueError:
-        await safe_edit_or_send(message, '❌ Введите положительное число (например: 100 или 50.5)')
+        await safe_edit_or_send(message, 'вќЊ Р’РІРµРґРёС‚Рµ РїРѕР»РѕР¶РёС‚РµР»СЊРЅРѕРµ С‡РёСЃР»Рѕ (РЅР°РїСЂРёРјРµСЂ: 100 РёР»Рё 50.5)')
         return
     amount_cents = int(round(amount_rub * 100))
     data = await state.get_data()
     telegram_id = data.get('balance_user_telegram_id')
     operation = data.get('balance_operation')
     if not telegram_id:
-        await safe_edit_or_send(message, '❌ Ошибка: потерян контекст операции')
+        await safe_edit_or_send(message, 'вќЊ РћС€РёР±РєР°: РїРѕС‚РµСЂСЏРЅ РєРѕРЅС‚РµРєСЃС‚ РѕРїРµСЂР°С†РёРё')
         return
     user = get_user_by_telegram_id(telegram_id)
     if not user:
-        await safe_edit_or_send(message, '❌ Пользователь не найден')
+        await safe_edit_or_send(message, 'вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ')
         return
     user_id = user['id']
     current_balance = get_user_balance(user_id)
     if operation == 'deduct':
         if amount_cents > current_balance:
             balance_rub = current_balance / 100
-            await safe_edit_or_send(message, f'❌ Недостаточно средств на балансе.\nТекущий баланс: {balance_rub:.2f} ₽\nПопытка списать: {amount_rub:.2f} ₽')
+            await safe_edit_or_send(message, f'вќЊ РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЂРµРґСЃС‚РІ РЅР° Р±Р°Р»Р°РЅСЃРµ.\nРўРµРєСѓС‰РёР№ Р±Р°Р»Р°РЅСЃ: {balance_rub:.2f} в‚Ѕ\nРџРѕРїС‹С‚РєР° СЃРїРёСЃР°С‚СЊ: {amount_rub:.2f} в‚Ѕ')
             return
         async with user_locks[user_id]:
             deduct_from_balance(user_id, amount_cents)
         new_balance = get_user_balance(user_id)
         new_balance_rub = new_balance / 100
-        await safe_edit_or_send(message, f'✅ Баланс списан\n\nСписано: {amount_rub:.2f} ₽\nНовый баланс: {new_balance_rub:.2f} ₽')
-        logger.info(f'Админ {message.from_user.id} списал {amount_cents} коп с баланса user {user_id}')
+        await safe_edit_or_send(message, f'вњ… Р‘Р°Р»Р°РЅСЃ СЃРїРёСЃР°РЅ\n\nРЎРїРёСЃР°РЅРѕ: {amount_rub:.2f} в‚Ѕ\nРќРѕРІС‹Р№ Р±Р°Р»Р°РЅСЃ: {new_balance_rub:.2f} в‚Ѕ')
+        logger.info(f'РђРґРјРёРЅ {message.from_user.id} СЃРїРёСЃР°Р» {amount_cents} РєРѕРї СЃ Р±Р°Р»Р°РЅСЃР° user {user_id}')
     else:
         async with user_locks[user_id]:
             add_to_balance(user_id, amount_cents)
         new_balance = get_user_balance(user_id)
         new_balance_rub = new_balance / 100
-        await safe_edit_or_send(message, f'✅ Баланс пополнен\n\nПополнено: {amount_rub:.2f} ₽\nНовый баланс: {new_balance_rub:.2f} ₽')
-        logger.info(f'Админ {message.from_user.id} пополнил баланс user {user_id} на {amount_cents} коп')
+        await safe_edit_or_send(message, f'вњ… Р‘Р°Р»Р°РЅСЃ РїРѕРїРѕР»РЅРµРЅ\n\nРџРѕРїРѕР»РЅРµРЅРѕ: {amount_rub:.2f} в‚Ѕ\nРќРѕРІС‹Р№ Р±Р°Р»Р°РЅСЃ: {new_balance_rub:.2f} в‚Ѕ')
+        logger.info(f'РђРґРјРёРЅ {message.from_user.id} РїРѕРїРѕР»РЅРёР» Р±Р°Р»Р°РЅСЃ user {user_id} РЅР° {amount_cents} РєРѕРї')
     try:
         await message.delete()
     except:

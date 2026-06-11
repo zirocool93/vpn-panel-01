@@ -34,7 +34,7 @@ def _add_column(conn: sqlite3.Connection, table: str, column_def: str) -> None:
 INITIAL_VERSION = 21
 
 # Текущая версия схемы БД (инкрементируется при добавлении новых миграций)
-LATEST_VERSION = 39
+LATEST_VERSION = 40
 
 
 def _my_keys_item_template() -> str:
@@ -352,6 +352,8 @@ def migration_initial(conn: sqlite3.Connection) -> None:
         ('update_blocked', '0'),
         ('daily_tasks_time', '03:00'),
         ('update_check_time', '12:00'),
+        ('display_timezone', 'Europe/Moscow'),
+        ('payment_notifications_enabled', '0'),
         ('my_keys_item_template', _my_keys_item_template()),
         # Режим работы бота для новых установок — Subscription
         # (бот выдаёт subscription URL, ключи во всех inbound с единым subId).
@@ -370,6 +372,7 @@ def migration_initial(conn: sqlite3.Connection) -> None:
             telegram_id INTEGER NOT NULL UNIQUE,
             username TEXT,
             is_banned INTEGER DEFAULT 0,
+            is_bot_blocked INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             used_trial INTEGER DEFAULT 0,
             referral_code TEXT,
@@ -379,6 +382,7 @@ def migration_initial(conn: sqlite3.Connection) -> None:
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_users_is_bot_blocked ON users(is_bot_blocked)")
 
     # ── tariffs ───────────────────────────────────────────────────────────────
 
@@ -1416,6 +1420,15 @@ def migration_39(conn):
     logger.info("Migration v39 applied: admin_roles and admin_user_permission_overrides added")
 
 
+def migration_40(conn):
+    """Migration v40: upstream bot delivery flags and display timezone settings."""
+    _add_column(conn, "users", "is_bot_blocked INTEGER DEFAULT 0")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_users_is_bot_blocked ON users(is_bot_blocked)")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('display_timezone', 'Europe/Moscow')")
+    conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('payment_notifications_enabled', '0')")
+    logger.info("Migration v40 applied: bot blocked flag and display timezone settings added")
+
+
 MIGRATIONS = {
     22: migration_22,
     23: migration_23,
@@ -1435,6 +1448,7 @@ MIGRATIONS = {
     37: migration_37,
     38: migration_38,
     39: migration_39,
+    40: migration_40,
 }
 
 

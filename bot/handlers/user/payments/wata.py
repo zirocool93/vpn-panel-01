@@ -265,7 +265,7 @@ async def check_wata_payment(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer('🔍 Проверяем платёж...')
     try:
-        status = await check_wata_payment_status(order_id)
+        status = await check_wata_payment_status(wata_link_id)
     except Exception as e:
         logger.error(f'Ошибка проверки статуса WATA {order_id}: {e}')
         await safe_edit_or_send(

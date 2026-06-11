@@ -25,6 +25,7 @@ __all__ = [
     'update_key_notified_pct',
     'reset_key_traffic_notification',
     'update_key_traffic_limit',
+    'update_vpn_key_tariff_and_traffic_limit',
     'update_vpn_key_config',
     'update_vpn_key_sub_id',
     'delete_vpn_key',
@@ -425,6 +426,23 @@ def update_key_traffic_limit(key_id: int, traffic_limit_bytes: int) -> None:
         conn.execute("""
             UPDATE vpn_keys SET traffic_limit = ? WHERE id = ?
         """, (traffic_limit_bytes, key_id))
+
+
+def update_vpn_key_tariff_and_traffic_limit(key_id: int, tariff_id: int, traffic_limit_bytes: int) -> bool:
+    """
+    Updates a key tariff and resets traffic counters for the new paid period.
+    """
+    with get_db() as conn:
+        cursor = conn.execute("""
+            UPDATE vpn_keys
+            SET tariff_id = ?,
+                traffic_limit = ?,
+                traffic_used = 0,
+                traffic_updated_at = NULL,
+                traffic_notified_pct = 100
+            WHERE id = ?
+        """, (tariff_id, traffic_limit_bytes, key_id))
+        return cursor.rowcount > 0
 
 def update_vpn_key_config(
     key_id: int,

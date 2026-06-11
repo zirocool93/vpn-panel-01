@@ -2,7 +2,7 @@
 Общие операции жизненного цикла VPN-ключей.
 """
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +11,7 @@ async def renew_key_access(
     key_id: int,
     days: int,
     reset_traffic: bool = True,
+    tariff_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Универсально продлевает или уменьшает срок ключа и синхронизирует панель.
@@ -19,7 +20,7 @@ async def renew_key_access(
     частично, изменение в БД не откатывается: повторная синхронизация сможет
     дожать состояние позже.
     """
-    from database.requests import extend_vpn_key
+    from database.requests import extend_vpn_key, get_tariff_by_id, update_vpn_key_tariff_and_traffic_limit
     from bot.services.vpn_api import restore_traffic_limit_in_db, sync_key_to_panel_state
 
     result: Dict[str, Any] = {
@@ -37,7 +38,15 @@ async def renew_key_access(
         return result
 
     result['db_updated'] = True
-    result['traffic_restored'] = restore_traffic_limit_in_db(key_id)
+
+    if tariff_id:
+        tariff = get_tariff_by_id(tariff_id)
+        traffic_limit = 0
+        if tariff:
+            traffic_limit = int((tariff.get('traffic_limit_gb') or 0) * (1024 ** 3))
+        result['traffic_restored'] = update_vpn_key_tariff_and_traffic_limit(key_id, tariff_id, traffic_limit)
+    else:
+        result['traffic_restored'] = restore_traffic_limit_in_db(key_id)
 
     try:
         sync_stats = await sync_key_to_panel_state(key_id, reset_traffic=reset_traffic)

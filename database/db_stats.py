@@ -36,7 +36,7 @@ def get_users_for_broadcast(filter_type: str) -> List[int]:
         if filter_type == 'all':
             # Все не забаненные
             cursor = conn.execute("""
-                SELECT telegram_id FROM users WHERE is_banned = 0
+                SELECT telegram_id FROM users WHERE is_banned = 0 AND COALESCE(is_bot_blocked, 0) = 0
             """)
         elif filter_type == 'active':
             # Есть хотя бы один непросроченный ключ
@@ -44,7 +44,7 @@ def get_users_for_broadcast(filter_type: str) -> List[int]:
                 SELECT DISTINCT u.telegram_id 
                 FROM users u
                 JOIN vpn_keys vk ON u.id = vk.user_id
-                WHERE u.is_banned = 0 
+                WHERE u.is_banned = 0 AND COALESCE(u.is_bot_blocked, 0) = 0
                 AND vk.expires_at > datetime('now')
             """)
         elif filter_type == 'inactive':
@@ -52,7 +52,7 @@ def get_users_for_broadcast(filter_type: str) -> List[int]:
             cursor = conn.execute("""
                 SELECT u.telegram_id 
                 FROM users u
-                WHERE u.is_banned = 0 
+                WHERE u.is_banned = 0 AND COALESCE(u.is_bot_blocked, 0) = 0
                 AND u.id NOT IN (
                     SELECT DISTINCT user_id FROM vpn_keys 
                     WHERE expires_at > datetime('now')
@@ -63,7 +63,7 @@ def get_users_for_broadcast(filter_type: str) -> List[int]:
             cursor = conn.execute("""
                 SELECT u.telegram_id 
                 FROM users u
-                WHERE u.is_banned = 0 
+                WHERE u.is_banned = 0 AND COALESCE(u.is_bot_blocked, 0) = 0
                 AND u.id NOT IN (SELECT DISTINCT user_id FROM vpn_keys)
             """)
         elif filter_type == 'expired':
@@ -72,7 +72,7 @@ def get_users_for_broadcast(filter_type: str) -> List[int]:
                 SELECT DISTINCT u.telegram_id 
                 FROM users u
                 JOIN vpn_keys vk ON u.id = vk.user_id
-                WHERE u.is_banned = 0 
+                WHERE u.is_banned = 0 AND COALESCE(u.is_bot_blocked, 0) = 0
                 AND vk.expires_at <= datetime('now')
                 AND u.id NOT IN (
                     SELECT DISTINCT user_id FROM vpn_keys 
@@ -116,7 +116,7 @@ def get_expiring_keys(days: int) -> List[Dict[str, Any]]:
                 CAST((julianday(vk.expires_at) - julianday('now')) AS INTEGER) as days_left
             FROM vpn_keys vk
             JOIN users u ON vk.user_id = u.id
-            WHERE u.is_banned = 0
+            WHERE u.is_banned = 0 AND COALESCE(u.is_bot_blocked, 0) = 0
             AND vk.expires_at > datetime('now')
             AND vk.expires_at <= datetime('now', '+' || ? || ' days')
         """, (days,))

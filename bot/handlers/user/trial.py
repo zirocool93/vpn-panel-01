@@ -34,7 +34,7 @@ async def show_trial_subscription(callback: CallbackQuery):
 @router.callback_query(F.data == 'trial_activate')
 async def activate_trial_subscription(callback: CallbackQuery, state: FSMContext):
     """Активирует пробную подписку: создаёт ключ через стандартный механизм."""
-    from database.requests import is_trial_enabled, get_trial_tariff_id, has_used_trial, get_tariff_by_id, get_or_create_user, mark_trial_used, create_initial_vpn_key, create_pending_order, complete_order
+    from database.requests import is_trial_enabled, get_trial_tariff_id, has_used_trial, get_tariff_by_id, get_or_create_user, mark_trial_used, create_initial_vpn_key, create_pending_order, complete_order, find_order_by_order_id
     from bot.handlers.user.payments.keys_config import start_new_key_config
 
     user_id = callback.from_user.id
@@ -65,6 +65,13 @@ async def activate_trial_subscription(callback: CallbackQuery, state: FSMContext
     key_id = create_initial_vpn_key(internal_user_id, tariff_id, duration_days, traffic_limit=traffic_limit_bytes)
     (_, order_id) = create_pending_order(user_id=internal_user_id, tariff_id=tariff_id, payment_type='trial', vpn_key_id=key_id)
     complete_order(order_id)
+    try:
+        from bot.services.notifications import notify_admins_payment
+        order = find_order_by_order_id(order_id)
+        if order:
+            await notify_admins_payment(callback.bot, order)
+    except Exception as notify_err:
+        logger.warning(f'Ошибка уведомления администраторов о пробной подписке: {notify_err}')
 
     await state.update_data(new_key_order_id=order_id, new_key_id=key_id)
     await callback.answer()

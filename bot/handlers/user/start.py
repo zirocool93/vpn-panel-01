@@ -112,6 +112,17 @@ async def _render_main_page(target, force_new: bool = False):
     )
 
 
+@router.message(Command('id'))
+async def cmd_id(message: Message):
+    """Shows the user's Telegram ID."""
+    user_id = message.from_user.id
+    await safe_edit_or_send(
+        message,
+        f'🆔 <b>Ваш Telegram ID:</b> <code>{user_id}</code>',
+        force_new=True,
+    )
+
+
 @router.message(Command('start'), StateFilter('*'))
 async def cmd_start(message: Message, state: FSMContext, command: CommandObject):
     """Обработчик команды /start."""
@@ -132,6 +143,11 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
         try:
             (success, text, order) = await process_crypto_payment(args, user_id=user['id'])
             if success and order:
+                try:
+                    from bot.services.notifications import notify_admins_payment
+                    await notify_admins_payment(message.bot, order)
+                except Exception as notify_err:
+                    logger.warning(f'Ошибка уведомления администраторов об оплате: {notify_err}')
                 await finalize_payment_ui(message, state, text, order, user_id=message.from_user.id)
             else:
                 await safe_edit_or_send(message, text, force_new=True)

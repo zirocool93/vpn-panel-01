@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable
 
 from bot.utils.text import escape_html
+from bot.utils.datetime_format import format_date_for_display
 
 MY_KEYS_ITEM_TEMPLATE_SETTING = 'my_keys_item_template'
 DEFAULT_MY_KEYS_ITEM_TEMPLATE = (
@@ -22,7 +23,7 @@ def build_my_keys_item_text(
     protocol: str,
 ) -> str:
     """Подставляет данные одного ключа в скрытый шаблон строки списка."""
-    expires = key.get('expires_at')[:10] if key.get('expires_at') else '—'
+    expires = format_date_for_display(key.get('expires_at'), fallback='—')
     server = key.get('server_name') or 'Не выбран'
     display_name = key.get('display_name') or f"Ключ #{key.get('id', '')}"
 

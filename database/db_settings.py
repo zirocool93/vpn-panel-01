@@ -3,6 +3,7 @@ import logging
 import secrets
 import string
 import datetime
+import re
 from typing import Optional, List, Dict, Any, Tuple
 from .connection import get_db
 
@@ -38,7 +39,21 @@ __all__ = [
     'is_trial_enabled',
     'get_trial_tariff_id',
     'is_demo_payment_enabled',
+    'normalize_display_timezone',
+    'get_display_timezone',
+    'set_display_timezone',
 ]
+
+DEFAULT_DISPLAY_TIMEZONE = 'Europe/Moscow'
+DISPLAY_TIMEZONE_SETTING = 'display_timezone'
+_UTC_OFFSET_RE = re.compile(r'^UTC([+-])?(\d{1,2})(?::?(\d{2}))?$')
+_DISPLAY_TIMEZONE_ALIASES = {
+    'msk': DEFAULT_DISPLAY_TIMEZONE,
+    'moscow': DEFAULT_DISPLAY_TIMEZONE,
+    'europe/moscow': DEFAULT_DISPLAY_TIMEZONE,
+    'мск': DEFAULT_DISPLAY_TIMEZONE,
+    'москва': DEFAULT_DISPLAY_TIMEZONE,
+}
 
 def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
     """
@@ -88,6 +103,44 @@ def delete_setting(key: str) -> bool:
     with get_db() as conn:
         cursor = conn.execute("DELETE FROM settings WHERE key = ?", (key,))
         return cursor.rowcount > 0
+
+
+def normalize_display_timezone(value: Optional[str]) -> str:
+    """Normalizes display timezone setting to an IANA name or UTC offset."""
+    raw = (value or '').strip()
+    if not raw:
+        return DEFAULT_DISPLAY_TIMEZONE
+
+    alias = _DISPLAY_TIMEZONE_ALIASES.get(raw.lower())
+    if alias:
+        return alias
+
+    if raw.upper() == 'UTC':
+        return 'UTC'
+
+    match = _UTC_OFFSET_RE.match(raw.upper().replace(' ', ''))
+    if match:
+        sign, hours_raw, minutes_raw = match.groups()
+        sign = sign or '+'
+        hours = int(hours_raw)
+        minutes = int(minutes_raw or '0')
+        if hours > 14 or minutes > 59:
+            return DEFAULT_DISPLAY_TIMEZONE
+        return f'UTC{sign}{hours:02d}:{minutes:02d}'
+
+    return raw
+
+
+def get_display_timezone() -> str:
+    """Returns configured timezone for displaying UTC datetimes."""
+    return normalize_display_timezone(get_setting(DISPLAY_TIMEZONE_SETTING, DEFAULT_DISPLAY_TIMEZONE))
+
+
+def set_display_timezone(value: str) -> str:
+    """Stores display timezone and returns normalized value."""
+    normalized = normalize_display_timezone(value)
+    set_setting(DISPLAY_TIMEZONE_SETTING, normalized)
+    return normalized
 
 
 YADRENO_ADMIN_API_KEY_SETTING = 'yadreno_admin_api_key'

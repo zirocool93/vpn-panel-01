@@ -10,6 +10,7 @@ from database.requests import get_users_stats, get_all_users_paginated, get_user
 from bot.utils.admin import is_admin
 from bot.utils.text import escape_html, safe_edit_or_send
 from bot.utils.panel_email import get_panel_email_prefix
+from bot.utils.datetime_format import format_datetime_for_display
 from bot.states.admin_states import AdminStates
 from bot.keyboards.admin import users_menu_kb, users_list_kb, user_view_kb, user_ban_confirm_kb, key_view_kb, add_key_server_kb, add_key_inbound_kb, add_key_step_kb, add_key_confirm_kb, users_input_cancel_kb, key_action_cancel_kb, back_and_home_kb, home_only_kb
 from bot.services.vpn_api import get_client_from_server_data, VPNAPIError, format_traffic
@@ -53,8 +54,8 @@ async def show_key_view(callback: CallbackQuery, state: FSMContext):
             key_name = uuid or f'Ключ #{key_id}'
     server_name = key.get('server_name', 'Неизвестный сервер')
     tariff_name = key.get('tariff_name', 'Неизвестный тариф')
-    expires_at = key.get('expires_at', '?')
-    created_at = key.get('created_at', '?')
+    expires_at = format_datetime_for_display(key.get('expires_at'), fallback='?')
+    created_at = format_datetime_for_display(key.get('created_at'), fallback='?')
     panel_email = key.get('panel_email')
     if panel_email:
         panel_email_line = f'📧 E-mail в панели: <code>{escape_html(panel_email)}</code>'
@@ -79,7 +80,7 @@ async def show_key_view(callback: CallbackQuery, state: FSMContext):
     if payments_history:
         text += '\n💳 <b>История платежей:</b>\n'
         for p in payments_history:
-            dt = p['paid_at']
+            dt = format_datetime_for_display(p.get('paid_at'), fallback='?')
             amount = ''
             if p['payment_type'] == 'crypto':
                 usd = p['amount_cents'] / 100
@@ -87,7 +88,7 @@ async def show_key_view(callback: CallbackQuery, state: FSMContext):
                 amount = f'${usd_str}'
             elif p['payment_type'] == 'stars':
                 amount = f"{p['amount_stars']} ⭐"
-            elif p.get('payment_type') == 'cards':
+            elif p.get('payment_type') in ('cards', 'yookassa_qr', 'wata', 'platega', 'cardlink', 'balance'):
                 rub = p.get('price_rub') or 0
                 rub_str = f'{rub:g}'.replace('.', ',')
                 amount = f'{rub_str} ₽'

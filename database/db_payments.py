@@ -251,7 +251,7 @@ def get_user_payments_stats(user_id: int) -> Dict[str, Any]:
                 COUNT(*) as total_payments,
                 COALESCE(SUM(CASE WHEN payment_type = 'crypto' THEN amount_cents ELSE 0 END), 0) as total_amount_cents,
                 COALESCE(SUM(CASE WHEN payment_type = 'stars' THEN amount_stars ELSE 0 END), 0) as total_amount_stars,
-                COALESCE(SUM(CASE WHEN payment_type = 'cards' THEN t.price_rub ELSE 0 END), 0) as total_amount_rub,
+                COALESCE(SUM(CASE WHEN payment_type IN ('cards', 'yookassa_qr', 'wata', 'platega', 'cardlink', 'balance') THEN t.price_rub ELSE 0 END), 0) as total_amount_rub,
                 MAX(paid_at) as last_payment_at
             FROM payments p
             LEFT JOIN tariffs t ON p.tariff_id = t.id
@@ -680,7 +680,7 @@ def get_key_payments_history(key_id: int) -> List[Dict[str, Any]]:
     """
     with get_db() as conn:
         cursor = conn.execute("""
-            SELECT p.*, t.name as tariff_name
+            SELECT p.*, t.name as tariff_name, t.price_rub as price_rub
             FROM payments p
             LEFT JOIN tariffs t ON p.tariff_id = t.id
             WHERE p.vpn_key_id = ? AND p.status = 'paid'

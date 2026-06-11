@@ -1,27 +1,28 @@
-"""Сборка HTML-блоков для редактируемых страниц ключей."""
+"""РЎР±РѕСЂРєР° HTML-Р±Р»РѕРєРѕРІ РґР»СЏ СЂРµРґР°РєС‚РёСЂСѓРµРјС‹С… СЃС‚СЂР°РЅРёС† РєР»СЋС‡РµР№."""
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
 from bot.utils.text import escape_html
+from bot.utils.datetime_format import format_date_for_display
 
 
-KEY_INFO_PLACEHOLDER = '%информацияключа%'
-KEY_HISTORY_PLACEHOLDER = '%историяопераций%'
-SCREEN_DATA_PLACEHOLDER = '%данныеэкрана%'
-REPLACE_DATA_PLACEHOLDER = '%данныезамены%'
-KEY_DATA_PLACEHOLDER = '%данныеключа%'
+KEY_INFO_PLACEHOLDER = '%РёРЅС„РѕСЂРјР°С†РёСЏРєР»СЋС‡Р°%'
+KEY_HISTORY_PLACEHOLDER = '%РёСЃС‚РѕСЂРёСЏРѕРїРµСЂР°С†РёР№%'
+SCREEN_DATA_PLACEHOLDER = '%РґР°РЅРЅС‹РµСЌРєСЂР°РЅР°%'
+REPLACE_DATA_PLACEHOLDER = '%РґР°РЅРЅС‹РµР·Р°РјРµРЅС‹%'
+KEY_DATA_PLACEHOLDER = '%РґР°РЅРЅС‹РµРєР»СЋС‡Р°%'
 
 
-def _safe(value: Any, fallback: str = '—') -> str:
-    """Экранирует динамическое значение для HTML."""
+def _safe(value: Any, fallback: str = 'вЂ”') -> str:
+    """Р­РєСЂР°РЅРёСЂСѓРµС‚ РґРёРЅР°РјРёС‡РµСЃРєРѕРµ Р·РЅР°С‡РµРЅРёРµ РґР»СЏ HTML."""
     if value is None or value == '':
         return escape_html(fallback)
     return escape_html(str(value))
 
 
 def keyboard_rows(markup) -> list:
-    """Возвращает ряды кнопок из готовой InlineKeyboardMarkup."""
+    """Р’РѕР·РІСЂР°С‰Р°РµС‚ СЂСЏРґС‹ РєРЅРѕРїРѕРє РёР· РіРѕС‚РѕРІРѕР№ InlineKeyboardMarkup."""
     if not markup:
         return []
     return list(getattr(markup, 'inline_keyboard', []) or [])
@@ -37,21 +38,21 @@ def build_key_details_replacements(
     protocol: str,
     prepend_html: str = '',
 ) -> dict[str, str]:
-    """Готовит плейсхолдеры карточки ключа."""
+    """Р“РѕС‚РѕРІРёС‚ РїР»РµР№СЃС…РѕР»РґРµСЂС‹ РєР°СЂС‚РѕС‡РєРё РєР»СЋС‡Р°."""
     info_lines: list[str] = []
     if prepend_html:
         info_lines.extend([prepend_html, ''])
 
-    server = key.get('server_name') or 'Не выбран'
-    expires = key.get('expires_at')[:10] if key.get('expires_at') else '—'
+    server = key.get('server_name') or 'РќРµ РІС‹Р±СЂР°РЅ'
+    expires = format_date_for_display(key.get('expires_at'), fallback='вЂ”')
     info_lines.extend([
-        f"🔑 <b>{_safe(key.get('display_name'), 'VPN-ключ')}</b>",
+        f"рџ”‘ <b>{_safe(key.get('display_name'), 'VPN-РєР»СЋС‡')}</b>",
         '',
-        f"<b>Статус:</b> {_safe(status)}",
-        f"<b>Сервер:</b> {_safe(server)}",
-        f"<b>Протокол:</b> {_safe(inbound_name)} ({_safe(protocol)})",
-        f"<b>Трафик:</b> {_safe(traffic_info)}",
-        f"<b>Действует до:</b> {_safe(expires)}",
+        f"<b>РЎС‚Р°С‚СѓСЃ:</b> {_safe(status)}",
+        f"<b>РЎРµСЂРІРµСЂ:</b> {_safe(server)}",
+        f"<b>РџСЂРѕС‚РѕРєРѕР»:</b> {_safe(inbound_name)} ({_safe(protocol)})",
+        f"<b>РўСЂР°С„РёРє:</b> {_safe(traffic_info)}",
+        f"<b>Р”РµР№СЃС‚РІСѓРµС‚ РґРѕ:</b> {_safe(expires)}",
     ])
 
     return {
@@ -61,36 +62,41 @@ def build_key_details_replacements(
 
 
 def build_key_history_block(payments: Iterable[Mapping[str, Any]]) -> str:
-    """Собирает блок истории операций ключа."""
+    """РЎРѕР±РёСЂР°РµС‚ Р±Р»РѕРє РёСЃС‚РѕСЂРёРё РѕРїРµСЂР°С†РёР№ РєР»СЋС‡Р°."""
     payment_rows = list(payments or [])
     if not payment_rows:
         return ''
 
-    lines = ['', '📜 <b>История операций:</b>']
+    lines = ['', 'рџ“њ <b>РСЃС‚РѕСЂРёСЏ РѕРїРµСЂР°С†РёР№:</b>']
     for payment in payment_rows:
-        date = payment.get('paid_at')[:10] if payment.get('paid_at') else '—'
-        tariff = payment.get('tariff_name') or 'Тариф'
-        if payment.get('payment_type') == 'stars':
+        date = format_date_for_display(payment.get("paid_at"), fallback="-")
+        tariff = payment.get("tariff_name") or "Тариф"
+        payment_type = payment.get("payment_type")
+        if payment_type == "stars":
             amount = f"{_safe(payment.get('amount_stars') or 0)} ⭐"
+        elif payment_type in ("cards", "yookassa_qr", "wata", "platega", "cardlink", "balance"):
+            amount_val = payment.get("price_rub") or 0
+            amount_str = f"{amount_val:g}".replace(".", ",")
+            amount = f"{_safe(amount_str)} ₽"
         else:
-            amount_val = (payment.get('amount_cents') or 0) / 100
-            amount_str = f'{amount_val:g}'.replace('.', ',')
-            amount = f'${_safe(amount_str)}'
+            amount_val = (payment.get("amount_cents") or 0) / 100
+            amount_str = f"{amount_val:g}".replace(".", ",")
+            amount = f"${_safe(amount_str)}"
         lines.append(f"   • {_safe(date)}: {_safe(tariff)} ({amount})")
     return '\n'.join(lines)
 
 
 def build_replace_server_select_data() -> str:
-    """Описание стартового экрана замены ключа."""
+    """РћРїРёСЃР°РЅРёРµ СЃС‚Р°СЂС‚РѕРІРѕРіРѕ СЌРєСЂР°РЅР° Р·Р°РјРµРЅС‹ РєР»СЋС‡Р°."""
     return (
-        "Вы можете пересоздать ключ на другом или том же сервере.\n"
-        "Старый ключ будет удалён, но срок действия сохранится."
+        "Р’С‹ РјРѕР¶РµС‚Рµ РїРµСЂРµСЃРѕР·РґР°С‚СЊ РєР»СЋС‡ РЅР° РґСЂСѓРіРѕРј РёР»Рё С‚РѕРј Р¶Рµ СЃРµСЂРІРµСЂРµ.\n"
+        "РЎС‚Р°СЂС‹Р№ РєР»СЋС‡ Р±СѓРґРµС‚ СѓРґР°Р»С‘РЅ, РЅРѕ СЃСЂРѕРє РґРµР№СЃС‚РІРёСЏ СЃРѕС…СЂР°РЅРёС‚СЃСЏ."
     )
 
 
 def build_server_screen_data(server: Mapping[str, Any]) -> str:
-    """Готовит блок с выбранным сервером."""
-    return f"<b>Сервер:</b> {_safe(server.get('name'), 'Не выбран')}"
+    """Р“РѕС‚РѕРІРёС‚ Р±Р»РѕРє СЃ РІС‹Р±СЂР°РЅРЅС‹Рј СЃРµСЂРІРµСЂРѕРј."""
+    return f"<b>РЎРµСЂРІРµСЂ:</b> {_safe(server.get('name'), 'РќРµ РІС‹Р±СЂР°РЅ')}"
 
 
 def build_replace_confirm_data(
@@ -99,35 +105,35 @@ def build_replace_confirm_data(
     *,
     subscription_mode: bool,
 ) -> str:
-    """Готовит блок подтверждения замены ключа."""
+    """Р“РѕС‚РѕРІРёС‚ Р±Р»РѕРє РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Р·Р°РјРµРЅС‹ РєР»СЋС‡Р°."""
     lines = [
-        f"Ключ: <b>{_safe(key.get('display_name'), 'VPN-ключ')}</b>",
-        f"Новый сервер: <b>{_safe(server.get('name'), 'Не выбран')}</b>",
+        f"РљР»СЋС‡: <b>{_safe(key.get('display_name'), 'VPN-РєР»СЋС‡')}</b>",
+        f"РќРѕРІС‹Р№ СЃРµСЂРІРµСЂ: <b>{_safe(server.get('name'), 'РќРµ РІС‹Р±СЂР°РЅ')}</b>",
         '',
     ]
     if subscription_mode:
         lines.extend([
-            "Подписка будет пересоздана на новом сервере (со всеми протоколами).",
-            "Старая ссылка перестанет работать — нужно будет обновить её в приложении.",
+            "РџРѕРґРїРёСЃРєР° Р±СѓРґРµС‚ РїРµСЂРµСЃРѕР·РґР°РЅР° РЅР° РЅРѕРІРѕРј СЃРµСЂРІРµСЂРµ (СЃРѕ РІСЃРµРјРё РїСЂРѕС‚РѕРєРѕР»Р°РјРё).",
+            "РЎС‚Р°СЂР°СЏ СЃСЃС‹Р»РєР° РїРµСЂРµСЃС‚Р°РЅРµС‚ СЂР°Р±РѕС‚Р°С‚СЊ вЂ” РЅСѓР¶РЅРѕ Р±СѓРґРµС‚ РѕР±РЅРѕРІРёС‚СЊ РµС‘ РІ РїСЂРёР»РѕР¶РµРЅРёРё.",
         ])
     else:
         lines.extend([
-            "Старый ключ будет удалён и перестанет работать.",
-            "Вам нужно будет обновить настройки в приложении.",
+            "РЎС‚Р°СЂС‹Р№ РєР»СЋС‡ Р±СѓРґРµС‚ СѓРґР°Р»С‘РЅ Рё РїРµСЂРµСЃС‚Р°РЅРµС‚ СЂР°Р±РѕС‚Р°С‚СЊ.",
+            "Р’Р°Рј РЅСѓР¶РЅРѕ Р±СѓРґРµС‚ РѕР±РЅРѕРІРёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё РІ РїСЂРёР»РѕР¶РµРЅРёРё.",
         ])
     return '\n'.join(lines)
 
 
 def build_key_rename_data(key: Mapping[str, Any]) -> str:
-    """Готовит блок текущего имени ключа для переименования."""
-    return f"Текущее имя: <b>{_safe(key.get('display_name'), 'VPN-ключ')}</b>"
+    """Р“РѕС‚РѕРІРёС‚ Р±Р»РѕРє С‚РµРєСѓС‰РµРіРѕ РёРјРµРЅРё РєР»СЋС‡Р° РґР»СЏ РїРµСЂРµРёРјРµРЅРѕРІР°РЅРёСЏ."""
+    return f"РўРµРєСѓС‰РµРµ РёРјСЏ: <b>{_safe(key.get('display_name'), 'VPN-РєР»СЋС‡')}</b>"
 
 
 def build_new_key_server_select_data() -> str:
-    """Описание выбора сервера после оплаты."""
-    return "🔑 Теперь выберите сервер для вашего нового ключа."
+    """РћРїРёСЃР°РЅРёРµ РІС‹Р±РѕСЂР° СЃРµСЂРІРµСЂР° РїРѕСЃР»Рµ РѕРїР»Р°С‚С‹."""
+    return "рџ”‘ РўРµРїРµСЂСЊ РІС‹Р±РµСЂРёС‚Рµ СЃРµСЂРІРµСЂ РґР»СЏ РІР°С€РµРіРѕ РЅРѕРІРѕРіРѕ РєР»СЋС‡Р°."
 
 
 def build_new_key_server_back_data() -> str:
-    """Описание выбора сервера при возврате со следующего шага."""
-    return "🔑 Выберите сервер для вашего нового ключа."
+    """РћРїРёСЃР°РЅРёРµ РІС‹Р±РѕСЂР° СЃРµСЂРІРµСЂР° РїСЂРё РІРѕР·РІСЂР°С‚Рµ СЃРѕ СЃР»РµРґСѓСЋС‰РµРіРѕ С€Р°РіР°."""
+    return "рџ”‘ Р’С‹Р±РµСЂРёС‚Рµ СЃРµСЂРІРµСЂ РґР»СЏ РІР°С€РµРіРѕ РЅРѕРІРѕРіРѕ РєР»СЋС‡Р°."
